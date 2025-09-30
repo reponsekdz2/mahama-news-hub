@@ -5,6 +5,7 @@ export interface Source {
 }
 
 export interface Article {
+  id: string; // Added for unique identification
   title: string;
   summary: string;
   category: string;

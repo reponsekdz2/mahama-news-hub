@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 type Theme = 'light' | 'dark';
-type AccentColor = 'red' | 'blue' | 'green' | 'purple' | 'orange';
+type AccentColor = 'red' | 'blue' | 'green' | 'purple' | 'orange' | 'teal' | 'indigo' | 'pink';
 
 interface SettingsContextType {
   theme: Theme;
@@ -25,19 +25,27 @@ const ACCENT_COLORS: Record<AccentColor, Record<string, string>> = {
   },
   orange: {
     '50': '255 247 237', '100': '255 237 213', '200': '254 215 170', '300': '253 186 116', '400': '251 146 60', '500': '249 115 22', '600': '234 88 12', '700': '194 65 12', '800': '154 52 18', '900': '124 45 18'
+  },
+  teal: {
+    '50': '240 253 250', '100': '204 251 241', '200': '167 243 228', '300': '107 231 204', '400': '45 212 191', '500': '20 184 166', '600': '13 148 136', '700': '15 118 110', '800': '17 94 89', '900': '15 76 72'
+  },
+  indigo: {
+    '50': '238 242 255', '100': '224 231 255', '200': '199 210 254', '300': '165 180 252', '400': '129 140 248', '500': '99 102 241', '600': '79 70 229', '700': '67 56 202', '800': '55 48 163', '900': '49 46 129'
+  },
+  pink: {
+    '50': '253 242 248', '100': '252 231 243', '200': '251 207 232', '300': '249 168 212', '400': '244 114 182', '500': '236 72 153', '600': '219 39 119', '700': '190 24 93', '800': '157 23 77', '900': '131 24 67'
   }
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-// Helper function to safely access localStorage
-// FIX: Added <T> to declare a generic type parameter for the function, resolving "Cannot find name 'T'".
 const getStoredValue = <T,>(key: string, defaultValue: T): T => {
   if (typeof window === 'undefined') return defaultValue;
   try {
     const item = window.localStorage.getItem(key);
     return item ? (JSON.parse(item) as T) : defaultValue;
   } catch (error) {
+    // Fix: Pass the 'unknown' error object directly to console.warn, which accepts any type.
     console.warn(`Error reading localStorage key “${key}”:`, error);
     return defaultValue;
   }
@@ -45,10 +53,11 @@ const getStoredValue = <T,>(key: string, defaultValue: T): T => {
 
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Check for stored theme, fallback to system preference
+    // Default to dark mode for a modern feel, but respect user's preference if set
     const stored = getStoredValue<'light' | 'dark' | null>('theme', null);
     if (stored) return stored;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    // Check system preference, but default to dark if not specified
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   });
 
   const [accentColor, setAccentColorState] = useState<AccentColor>(() => 
@@ -57,7 +66,6 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   useEffect(() => {
     const root = window.document.documentElement;
-    // Apply theme
     root.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('theme', JSON.stringify(theme));
   }, [theme]);
@@ -65,12 +73,9 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     const root = window.document.documentElement;
     const colors = ACCENT_COLORS[accentColor];
-    // Apply accent color CSS variables
     for (const [shade, value] of Object.entries(colors)) {
         root.style.setProperty(`--accent-color-${shade}`, value);
     }
-    // FIX: To resolve the reported type error, we ensure the value passed to localStorage is a valid string.
-    // Using JSON.stringify is the correct approach because getStoredValue uses JSON.parse to retrieve it.
     localStorage.setItem('accentColor', JSON.stringify(accentColor));
   }, [accentColor]);
 
@@ -97,6 +102,5 @@ export const useSettings = () => {
   return context;
 };
 
-// Expose colors for the settings modal
 export const availableColors = Object.keys(ACCENT_COLORS) as AccentColor[];
 export { ACCENT_COLORS };

@@ -1,0 +1,46 @@
+const { v4: uuidv4 } = require('uuid');
+
+let articles = [
+    {
+        id: uuidv4(),
+        title: "Global Tech Summit Focuses on AI Ethics",
+        summary: "Leaders from around the world gathered this week to discuss the ethical implications of artificial intelligence. The summit aimed to establish international standards for AI development and deployment.",
+        category: "Technology",
+        imageUrl: `https://picsum.photos/seed/tech-summit/800/450`,
+        sources: [{ title: "Tech Chronicle", uri: "https://example.com/tech" }]
+    },
+    {
+        id: uuidv4(),
+        title: "Breakthrough in Renewable Energy Storage",
+        summary: "Scientists have announced a major advancement in battery technology that could revolutionize how renewable energy is stored. The new method promises higher capacity and lower costs.",
+        category: "Science",
+        imageUrl: `https://picsum.photos/seed/energy-storage/800/450`,
+        sources: [{ title: "Science Today", uri: "https://example.com/science" }]
+    },
+    {
+        id: uuidv4(),
+        title: "Political Landscape Shifts After Landmark Election",
+        summary: "A surprising election result has sent ripples through the political world, with analysts predicting significant policy changes in the coming months.",
+        category: "Politics",
+        imageUrl: `https://picsum.photos/seed/politics-election/800/450`,
+        sources: [{ title: "The Daily Post", uri: "https://example.com/politics" }]
+    },
+    {
+        id: uuidv4(),
+        title: "World Championship Finals Deliver Historic Upset",
+        summary: "The underdog team clinched the world championship in a stunning victory last night, concluding a season filled with unexpected twists and turns.",
+        category: "Sport",
+        imageUrl: `https://picsum.photos/seed/world-champs/800/450`,
+        sources: [{ title: "Sports Weekly", uri: "https://example.com/sports" }]
+    },
+     {
+        id: uuidv4(),
+        title: "New Health Initiative Launched to Combat Stress",
+        summary: "The Ministry of Health has launched a nationwide campaign to promote mental well-being and provide resources for managing stress in the workplace and at home.",
+        category: "Health",
+        imageUrl: `https://picsum.photos/seed/health-stress/800/450`,
+        sources: [{ title: "Health & Wellness", uri: "https://example.com/health" }]
+    }
+];
+
+module.exports = articles;

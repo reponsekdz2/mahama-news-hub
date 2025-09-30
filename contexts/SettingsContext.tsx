@@ -45,8 +45,11 @@ const getStoredValue = <T,>(key: string, defaultValue: T): T => {
     const item = window.localStorage.getItem(key);
     return item ? (JSON.parse(item) as T) : defaultValue;
   } catch (error) {
-    // Fix: Pass the 'unknown' error object directly to console.warn, which accepts any type.
-    console.warn(`Error reading localStorage key “${key}”:`, error);
+    // FIX: The `error` variable is of type `unknown`. Explicitly convert it to a string
+    // to satisfy stricter type checks for `console.warn` arguments, and to align with
+    // the pattern used in other context files.
+    // FIX: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+    console.warn(`Error reading localStorage key “${key}”:`, String(error));
     return defaultValue;
   }
 };

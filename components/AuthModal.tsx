@@ -14,46 +14,78 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { login } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('login');
   
-  // Login form state
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-
-  // Register form state
-  const [registerName, setRegisterName] = useState('');
-  const [registerEmail, setRegisterEmail] = useState('');
-  const [registerPassword, setRegisterPassword] = useState('');
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
+  // Form State
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
-    // Reset forms when modal opens or tab changes
     if (isOpen) {
-      setLoginEmail('');
-      setLoginPassword('');
-      setRegisterName('');
-      setRegisterEmail('');
-      setRegisterPassword('');
-      setRegisterConfirmPassword('');
+      setEmail('');
+      setPassword('');
+      setName('');
+      setConfirmPassword('');
+      setError(null);
     }
   }, [isOpen, activeTab]);
 
   if (!isOpen) return null;
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleApiResponse = (data: any) => {
+      if (data.user && data.token) {
+        login({ ...data.user, token: data.token });
+        onClose();
+      } else {
+        setError(data.message || 'An unknown error occurred.');
+      }
+  }
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login attempt:", { email: loginEmail, password: loginPassword });
-    login({ name: 'User', email: loginEmail }); // Simulate login
-    onClose();
+    setIsLoading(true);
+    setError(null);
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Login failed');
+        handleApiResponse(data);
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+        setIsLoading(false);
+    }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (registerPassword !== registerConfirmPassword) {
-        alert("Passwords do not match.");
+    if (password !== confirmPassword) {
+        setError("Passwords do not match.");
         return;
     }
-    console.log("Registration attempt:", { name: registerName, email: registerEmail, password: registerPassword });
-    login({ name: registerName, email: registerEmail }); // Simulate registration and login
-    onClose();
+    setIsLoading(true);
+    setError(null);
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Registration failed');
+        handleApiResponse(data);
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Registration failed');
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const TabButton: React.FC<{tab: ActiveTab, label: string}> = ({ tab, label }) => (
@@ -71,7 +103,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         <div className="p-6">
           <div className="flex justify-end">
              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 -mt-2 -mr-2 p-1 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24/24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -82,19 +114,21 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <TabButton tab="register" label={t('register')} />
           </div>
 
+          {error && <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-md text-sm">{error}</div>}
+
           {activeTab === 'login' ? (
             <div>
               <h2 className="text-xl font-bold text-center text-gray-900 dark:text-white mb-4">{t('loginToYourAccount')}</h2>
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('emailAddress')}</label>
-                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('password')}</label>
-                  <input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
                 </div>
-                <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 dark:focus:ring-offset-gray-800">{t('loginCTA')}</button>
+                <button type="submit" disabled={isLoading} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 dark:focus:ring-offset-gray-800 disabled:opacity-50">{isLoading ? 'Logging in...' : t('loginCTA')}</button>
               </form>
               <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
                 {t('dontHaveAccount')}{' '}
@@ -107,21 +141,21 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
                  <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('fullName')}</label>
-                  <input type="text" value={registerName} onChange={e => setRegisterName(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
+                  <input type="text" value={name} onChange={e => setName(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('emailAddress')}</label>
-                  <input type="email" value={registerEmail} onChange={e => setRegisterEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('password')}</label>
-                  <input type="password" value={registerPassword} onChange={e => setRegisterPassword(e.target.value)} required minLength={6} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
                 </div>
                  <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('confirmPassword')}</label>
-                  <input type="password" value={registerConfirmPassword} onChange={e => setRegisterConfirmPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
+                  <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700" />
                 </div>
-                <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 dark:focus:ring-offset-gray-800">{t('registerCTA')}</button>
+                <button type="submit" disabled={isLoading} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 dark:focus:ring-offset-gray-800 disabled:opacity-50">{isLoading ? 'Creating Account...' : t('registerCTA')}</button>
               </form>
                <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
                 {t('alreadyHaveAccount')}{' '}

@@ -1,9 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-interface User {
-  name: string;
-  email: string;
-}
+import { User } from '../types';
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -43,6 +39,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     setUser(null);
   };
+
+  const isAdmin = user?.role === 'admin';
 
   return (
     <AuthContext.Provider value={{ isLoggedIn: !!user, user, login, logout }}>

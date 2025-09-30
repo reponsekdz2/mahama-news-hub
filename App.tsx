@@ -8,15 +8,19 @@ import BackToTopButton from './components/BackToTopButton';
 import SettingsModal from './components/SettingsModal';
 import ArticleModal from './components/ArticleModal';
 import AuthModal from './components/AuthModal';
+import AdminPanel from './components/AdminPanel';
 import { Article } from './types';
-import { fetchNews, fetchPersonalizedNews } from './services/geminiService';
+import { fetchArticles } from './services/articleService';
+// FIX: Module '"./services/geminiService"' has no exported member 'fetchPersonalizedNews'.
 import { useLanguage, CATEGORIES } from './contexts/LanguageContext';
 import { useAuth } from './contexts/AuthContext';
 import { useSavedArticles } from './contexts/SavedArticlesContext';
 
+type View = 'news' | 'admin';
+
 const App: React.FC = () => {
   const { t, languageName } = useLanguage();
-  const { isLoggedIn } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const { savedArticles } = useSavedArticles();
 
   const [articles, setArticles] = useState<Article[]>([]);
@@ -28,8 +32,7 @@ const App: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [categoryKey, setCategoryKey] = useState('topStories');
-
-  const translatedCategories = CATEGORIES.map(key => t(key as any));
+  const [view, setView] = useState<View>('news');
 
   const loadNews = useCallback(async (currentTopicKey: string) => {
     setIsLoading(true);
@@ -39,12 +42,13 @@ const App: React.FC = () => {
       const currentTopic = t(currentTopicKey as any);
 
       if (currentTopicKey === 'forYou') {
-        const savedTitles = savedArticles.map(a => a.title);
-        fetchedArticles = await fetchPersonalizedNews(savedTitles, languageName);
+         // This can be replaced with a more advanced backend recommendation engine
+         // For now, it could fetch a mix of categories or remain client-side
+         fetchedArticles = await fetchArticles('Top Stories'); // Placeholder
       } else if (currentTopicKey === 'savedArticles') {
         fetchedArticles = savedArticles;
       } else {
-        fetchedArticles = await fetchNews(currentTopic, languageName, translatedCategories);
+        fetchedArticles = await fetchArticles(currentTopic);
       }
       setArticles(fetchedArticles);
     } catch (err) {
@@ -53,39 +57,52 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [languageName, translatedCategories, t, savedArticles]);
+  }, [languageName, t, savedArticles]);
 
   useEffect(() => {
     // If user logs out and is on a logged-in-only page, redirect to top stories
     if (!isLoggedIn && (categoryKey === 'forYou' || categoryKey === 'savedArticles')) {
         setCategoryKey('topStories');
     } else {
-        loadNews(categoryKey);
+        // Don't load news if in admin view
+        if (view === 'news') {
+            loadNews(categoryKey);
+        }
     }
-  }, [categoryKey, loadNews, isLoggedIn]);
+  }, [categoryKey, loadNews, isLoggedIn, view]);
 
   // Refetch news when language changes, maintaining the current category
   useEffect(() => {
       const currentTranslatedTopic = t(categoryKey as any);
       setTopic(currentTranslatedTopic);
-      loadNews(categoryKey);
-  }, [languageName, t, loadNews, categoryKey]);
+  }, [languageName, t, categoryKey]);
 
   const handleTopicChange = (newTopicKey: string) => {
+    setView('news'); // Always switch to news view when a category is clicked
     setCategoryKey(newTopicKey);
     const newTopic = t(newTopicKey as any);
     setTopic(newTopic);
   };
   
   const handleSearch = (query: string) => {
+    setView('news');
     setCategoryKey(query);
     setTopic(query);
+    // You would ideally have a backend endpoint for search
+    // For now, this will likely show no results unless a category is searched
+    loadNews(query);
+  };
+  
+  const handleNavigateToAdmin = () => {
+    if (user?.role === 'admin') {
+      setView('admin');
+    }
   };
 
   const mainArticle = articles.length > 0 ? articles[0] : null;
   const otherArticles = articles.length > 1 ? articles.slice(1) : [];
 
-  const renderContent = () => {
+  const renderNewsContent = () => {
     if (isLoading) {
       return (
         <div className="fade-in">
@@ -125,6 +142,7 @@ const App: React.FC = () => {
 
     return (
       <div className="fade-in">
+        <h1 className="text-3xl font-extrabold text-gray-800 dark:text-gray-200 mt-6 md:mt-8 capitalize">{topic}</h1>
         {mainArticle && <MainArticle article={mainArticle} onReadMore={() => setSelectedArticle(mainArticle)} />}
         {otherArticles.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mt-8">
@@ -136,6 +154,13 @@ const App: React.FC = () => {
       </div>
     );
   };
+  
+  const renderCurrentView = () => {
+    if (view === 'admin' && user?.role === 'admin') {
+      return <AdminPanel onNavigateBack={() => setView('news')} />;
+    }
+    return renderNewsContent();
+  }
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100 transition-colors duration-300">
@@ -145,10 +170,10 @@ const App: React.FC = () => {
         onSearch={handleSearch} 
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         onOpenLogin={() => setIsAuthModalOpen(true)}
+        onNavigateToAdmin={handleNavigateToAdmin}
       />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-extrabold text-gray-800 dark:text-gray-200 mt-6 md:mt-8 capitalize">{topic}</h1>
-        {renderContent()}
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+        {renderCurrentView()}
       </main>
       <Footer />
       <BackToTopButton />

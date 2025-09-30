@@ -9,6 +9,7 @@ interface HeaderProps {
   onSearch: (query: string) => void;
   onOpenSettings: () => void;
   onOpenLogin: () => void;
+  onNavigateToAdmin: () => void;
 }
 
 const Logo: React.FC = () => (
@@ -20,8 +21,9 @@ const Logo: React.FC = () => (
   </div>
 );
 
-const UserMenu: React.FC<{onTopicChange: (topic: string) => void, onLogout: () => void}> = ({ onTopicChange, onLogout }) => {
+const UserMenu: React.FC<{onTopicChange: (topic: string) => void, onLogout: () => void, onNavigateToAdmin: () => void}> = ({ onTopicChange, onLogout, onNavigateToAdmin }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const { user } = useAuth();
     const menuRef = useRef<HTMLDivElement>(null);
     const { t } = useLanguage();
 
@@ -39,6 +41,11 @@ const UserMenu: React.FC<{onTopicChange: (topic: string) => void, onLogout: () =
         onTopicChange(topic);
         setIsOpen(false);
     }
+    
+    const handleAdminClick = () => {
+        onNavigateToAdmin();
+        setIsOpen(false);
+    };
 
     return (
         <div className="relative" ref={menuRef}>
@@ -54,6 +61,9 @@ const UserMenu: React.FC<{onTopicChange: (topic: string) => void, onLogout: () =
             {isOpen && (
                  <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black dark:ring-gray-700 ring-opacity-5 focus:outline-none z-40">
                     <div className="py-1">
+                        {user?.role === 'admin' && (
+                           <button onClick={handleAdminClick} className="block w-full text-left px-4 py-2 text-sm font-semibold text-accent-600 dark:text-accent-400 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</button>
+                        )}
                         <button onClick={() => handleSelect('forYou')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{t('forYou')}</button>
                         <button onClick={() => handleSelect('savedArticles')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{t('savedArticles')}</button>
                         <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
@@ -65,7 +75,7 @@ const UserMenu: React.FC<{onTopicChange: (topic: string) => void, onLogout: () =
     );
 };
 
-const Header: React.FC<HeaderProps> = ({ selectedTopic, onTopicChange, onSearch, onOpenSettings, onOpenLogin }) => {
+const Header: React.FC<HeaderProps> = ({ selectedTopic, onTopicChange, onSearch, onOpenSettings, onOpenLogin, onNavigateToAdmin }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { t } = useLanguage();
   const { isLoggedIn, logout } = useAuth();
@@ -97,7 +107,7 @@ const Header: React.FC<HeaderProps> = ({ selectedTopic, onTopicChange, onSearch,
             <SearchBar onSearch={onSearch} />
             
             {isLoggedIn ? (
-                <UserMenu onTopicChange={onTopicChange} onLogout={logout} />
+                <UserMenu onTopicChange={onTopicChange} onLogout={logout} onNavigateToAdmin={onNavigateToAdmin}/>
             ) : (
                 <button
                   onClick={onOpenLogin}

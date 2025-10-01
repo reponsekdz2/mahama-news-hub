@@ -28,7 +28,7 @@ const getArticles = async (req, res, next) => {
         
         // Fetch active ads
         const [ads] = await db.query(`
-            SELECT id, title, image_url as imageUrl, link_url as linkUrl
+            SELECT id, title, image_url as imageUrl, link_url as linkUrl, status, placement
             FROM advertisements
             WHERE status = 'active' AND placement = 'in-feed'
         `);
@@ -183,13 +183,13 @@ const getCommentsForArticle = async (req, res, next) => {
     }
 }
 
-// @desc Add a comment to an article
+// @desc Add a comment to an article and notify other commenters
 // @route POST /api/articles/:id/comments
 // @access Protected
 const addCommentToArticle = async (req, res, next) => {
     const { content } = req.body;
     const { id: article_id } = req.params;
-    const { id: user_id } = req.user;
+    const { id: user_id, name: actor_name } = req.user;
 
     if (!content) {
         return res.status(400).json({ message: 'Comment content cannot be empty' });
@@ -203,6 +203,25 @@ const addCommentToArticle = async (req, res, next) => {
             JOIN users u ON c.user_id = u.id
             WHERE c.id = ?
         `, [result.insertId]);
+
+        // --- Notification Logic ---
+        // Find all other unique users who have commented on this article
+        const [commenters] = await db.query(
+            'SELECT DISTINCT c.user_id FROM comments c JOIN user_preferences up ON c.user_id = up.user_id WHERE c.article_id = ? AND c.user_id != ? AND up.comment_notifications_enabled = 1',
+            [article_id, user_id]
+        );
+
+        if (commenters.length > 0) {
+            const notificationPromises = commenters.map(commenter => {
+                return db.query(
+                    'INSERT INTO notifications (user_id, actor_name, type, related_article_id) VALUES (?, ?, ?, ?)',
+                    [commenter.user_id, actor_name, 'new_comment', article_id]
+                );
+            });
+            await Promise.all(notificationPromises);
+        }
+        // --- End Notification Logic ---
+        
         res.status(201).json(newComment[0]);
     } catch (error) {
         next(error);

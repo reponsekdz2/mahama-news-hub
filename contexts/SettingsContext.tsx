@@ -101,7 +101,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   return (
     <SettingsContext.Provider value={value}>
       {children}
-    </Settings-context.Provider>
+    </SettingsContext.Provider>
   );
 };
 

@@ -13,6 +13,9 @@ export interface UserPreferences {
     theme: 'light' | 'dark';
     accentColor: 'red' | 'orange' | 'green' | 'blue' | 'purple' | 'teal' | 'pink';
     language: 'en' | 'fr' | 'rw';
+    contentPreferences?: string[];
+    newsletter?: boolean;
+    commentNotificationsEnabled?: boolean;
 }
 
 export interface Article {
@@ -53,4 +56,14 @@ export interface Collection {
     name: string;
     articles?: Article[];
     articleCount?: number;
+}
+
+export interface Notification {
+    id: string;
+    type: 'new_comment';
+    relatedArticleId: string;
+    relatedArticleTitle: string;
+    actorName: string;
+    isRead: boolean;
+    createdAt: string;
 }

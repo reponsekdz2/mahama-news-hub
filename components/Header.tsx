@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import SearchBar from './SearchBar.tsx';
+import NotificationsDropdown from './NotificationsDropdown.tsx';
 import { useLanguage, CATEGORIES } from '../contexts/LanguageContext.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 
@@ -135,6 +136,7 @@ const Header: React.FC<HeaderProps> = ({ selectedTopic, onTopicChange, onSearch,
                     
                     {/* Desktop Controls */}
                     <div className="hidden lg:flex items-center space-x-2">
+                         {isLoggedIn && <NotificationsDropdown onNavigateToArticle={() => { /* Implement navigation */ }} />}
                         <button
                             onClick={() => onNavigate('settings')}
                             className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -156,6 +158,7 @@ const Header: React.FC<HeaderProps> = ({ selectedTopic, onTopicChange, onSearch,
                     
                     {/* Mobile Menu Button */}
                     <div ref={menuRef} className="relative lg:hidden">
+                         {isLoggedIn && <NotificationsDropdown onNavigateToArticle={() => { /* Implement navigation */ }} />}
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"

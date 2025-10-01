@@ -50,6 +50,27 @@ const getAnalyticsSummary = async (req, res, next) => {
     }
 };
 
+// @desc    Get trending articles
+// @route   GET /api/analytics/trending
+// @access  Public
+const getTrendingArticles = async (req, res, next) => {
+    try {
+        const [articles] = await db.query(`
+            SELECT a.id, a.title, COUNT(v.id) as views
+            FROM articles a
+            JOIN article_views v ON a.id = v.article_id
+            WHERE v.createdAt >= CURDATE() - INTERVAL 7 DAY
+            GROUP BY a.id
+            ORDER BY views DESC
+            LIMIT 5
+        `);
+        res.json(articles);
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getAnalyticsSummary,
+    getTrendingArticles,
 };

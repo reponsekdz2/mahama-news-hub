@@ -1,1 +1,132 @@
-full contents of backend/schema.txt
+-- Users Table
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('user', 'admin') DEFAULT 'user',
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- User Preferences Table
+CREATE TABLE user_preferences (
+    user_id INT PRIMARY KEY,
+    theme ENUM('light', 'dark') DEFAULT 'dark',
+    accentColor VARCHAR(50) DEFAULT 'red',
+    language ENUM('en', 'fr', 'rw') DEFAULT 'en',
+    content_preferences JSON, -- Stores an array of preferred categories, e.g., ['Technology', 'Sport']
+    newsletter_subscribed BOOLEAN DEFAULT false,
+    comment_notifications_enabled BOOLEAN DEFAULT true,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Articles Table
+CREATE TABLE articles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    category VARCHAR(255) NOT NULL,
+    image_url VARCHAR(255),
+    video_url VARCHAR(255),
+    author_id INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Article Views Table
+CREATE TABLE article_views (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    article_id INT NOT NULL,
+    user_id INT, -- Can be null for anonymous views
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY user_article_view (user_id, article_id),
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Article Likes Table
+CREATE TABLE article_likes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    article_id INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY user_article_like (user_id, article_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+
+-- Comments Table
+CREATE TABLE comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    content TEXT NOT NULL,
+    article_id INT NOT NULL,
+    user_id INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Collections Table (for saved articles)
+CREATE TABLE collections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Collection Articles (many-to-many relationship)
+CREATE TABLE collection_articles (
+    collection_id INT NOT NULL,
+    article_id INT NOT NULL,
+    PRIMARY KEY (collection_id, article_id),
+    FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+
+-- Advertisements Table
+CREATE TABLE advertisements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    link_url VARCHAR(2048) NOT NULL,
+    image_url VARCHAR(255) NOT NULL,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    placement ENUM('in-feed', 'sidebar') DEFAULT 'in-feed',
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Ad Impressions Table
+CREATE TABLE ad_impressions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ad_id INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ad_id) REFERENCES advertisements(id) ON DELETE CASCADE
+);
+
+-- Ad Clicks Table
+CREATE TABLE ad_clicks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ad_id INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ad_id) REFERENCES advertisements(id) ON DELETE CASCADE
+);
+
+-- Newsletter Subscriptions Table (for guests and users)
+CREATE TABLE newsletter_subscriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notifications Table
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL, -- The user who receives the notification
+    actor_name VARCHAR(255) NOT NULL, -- The user who triggered the notification
+    type ENUM('new_comment') NOT NULL,
+    related_article_id INT NOT NULL,
+    is_read BOOLEAN DEFAULT false,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (related_article_id) REFERENCES articles(id) ON DELETE CASCADE
+);

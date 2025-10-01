@@ -1,5 +1,4 @@
-import { User } from '../types.ts';
-import { AccentColor, Theme } from '../contexts/SettingsContext.tsx';
+import { User, UserPreferences } from '../types.ts';
 
 const API_URL = '/api/users';
 
@@ -8,19 +7,22 @@ const handleResponse = async (response: Response) => {
         const error = await response.json();
         throw new Error(error.message || 'An API error occurred');
     }
+     if (response.status === 204 || response.headers.get('content-length') === '0') {
+        return null;
+    }
     return response.json();
 }
 
-type PreferenceKey = 'theme' | 'language' | 'accentColor';
+type PreferenceKey = keyof UserPreferences;
 
-export const getPreferences = async (token: string): Promise<{ theme: Theme, language: 'en' | 'fr' | 'rw', accentColor: AccentColor }> => {
+export const getPreferences = async (token: string): Promise<UserPreferences> => {
     const response = await fetch(`${API_URL}/preferences`, {
         headers: { 'Authorization': `Bearer ${token}` },
     });
     return handleResponse(response);
 };
 
-export const updatePreference = async (key: PreferenceKey, value: string, token: string): Promise<any> => {
+export const updatePreference = async (key: PreferenceKey, value: any, token: string): Promise<any> => {
     const response = await fetch(`${API_URL}/preferences`, {
         method: 'PUT',
         headers: {

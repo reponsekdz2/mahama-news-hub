@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-// Fix: Add .tsx extension to module import
 import ArticleManagement from './admin/ArticleManagement.tsx';
-// Fix: Add .tsx extension to module import
 import UserManagement from './admin/UserManagement.tsx';
-// Fix: Add .tsx extension to module import
 import Dashboard from './admin/Dashboard.tsx';
+import AdManagement from './admin/AdManagement.tsx';
 
-type AdminView = 'dashboard' | 'articles' | 'users';
+type AdminView = 'dashboard' | 'articles' | 'users' | 'ads';
 
 interface AdminPanelProps {
     onNavigateBack: () => void;
@@ -21,6 +19,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onNavigateBack }) => {
                 return <ArticleManagement />;
             case 'users':
                 return <UserManagement />;
+            case 'ads':
+                return <AdManagement />;
             case 'dashboard':
             default:
                 return <Dashboard />;
@@ -52,10 +52,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onNavigateBack }) => {
                 </button>
             </div>
             
-            <nav className="flex space-x-2 sm:space-x-4 mb-6">
+            <nav className="flex flex-wrap gap-2 sm:space-x-4 mb-6">
                 <NavButton currentView={view} targetView="dashboard" label="Dashboard" />
                 <NavButton currentView={view} targetView="articles" label="Articles" />
                 <NavButton currentView={view} targetView="users" label="Users" />
+                <NavButton currentView={view} targetView="ads" label="Advertisements" />
             </nav>
 
             <div className="mt-4">

@@ -58,11 +58,21 @@ const deleteUser = async (req, res, next) => {
 // @access  Protected
 const getUserPreferences = async (req, res, next) => {
     try {
-        const [prefs] = await db.query('SELECT theme, language, accent_color as accentColor FROM user_preferences WHERE user_id = ?', [req.user.id]);
-        if (prefs.length === 0) {
+        const [[prefs]] = await db.query('SELECT theme, language, accent_color as accentColor, content_preferences as contentPreferences FROM user_preferences WHERE user_id = ?', [req.user.id]);
+        const [[user]] = await db.query('SELECT is_subscribed as newsletter FROM users WHERE id = ?', [req.user.id]);
+
+        if (!prefs) {
             return res.status(404).json({ message: 'Preferences not found.' });
         }
-        res.json(prefs[0]);
+        
+        // Combine results and parse JSON string
+        const finalPrefs = {
+            ...prefs,
+            contentPreferences: JSON.parse(prefs.contentPreferences || '[]'),
+            newsletter: !!user.newsletter
+        }
+        
+        res.json(finalPrefs);
     } catch (error) {
         next(error);
     }
@@ -73,20 +83,28 @@ const getUserPreferences = async (req, res, next) => {
 // @access  Protected
 const updateUserPreference = async (req, res, next) => {
     const { key, value } = req.body;
-    const validKeys = {
+    const validPrefKeys = {
         'theme': 'theme',
         'language': 'language',
-        'accentColor': 'accent_color'
+        'accentColor': 'accent_color',
+        'contentPreferences': 'content_preferences',
     };
     
-    if (!validKeys[key]) {
-        return res.status(400).json({ message: 'Invalid preference key.' });
+    const validUserKeys = {
+        'newsletter': 'is_subscribed'
     }
-    
-    const dbKey = validKeys[key];
 
     try {
-        await db.query(`UPDATE user_preferences SET ${dbKey} = ? WHERE user_id = ?`, [value, req.user.id]);
+       if (validPrefKeys[key]) {
+            const dbKey = validPrefKeys[key];
+            const dbValue = typeof value === 'object' ? JSON.stringify(value) : value;
+            await db.query(`UPDATE user_preferences SET ${dbKey} = ? WHERE user_id = ?`, [dbValue, req.user.id]);
+        } else if (validUserKeys[key]) {
+            const dbKey = validUserKeys[key];
+            await db.query(`UPDATE users SET ${dbKey} = ? WHERE id = ?`, [value, req.user.id]);
+        } else {
+            return res.status(400).json({ message: 'Invalid preference key.' });
+        }
         res.json({ message: 'Preference updated.' });
     } catch (error) {
         next(error);

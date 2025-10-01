@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { getPreferences, updatePreference } from '../services/userService.ts';
 import { useAuth } from './AuthContext.tsx';
+import { UserPreferences } from '../types.ts';
 
 type Language = 'en' | 'fr' | 'rw';
 
@@ -57,6 +58,18 @@ const translations: Record<Language, Record<string, string>> = {
     registerCTA: 'Create Account',
     alreadyHaveAccount: 'Already have an account?',
     accentColor: 'Accent Color',
+    advertisement: 'Advertisement',
+    backToNews: 'Back to News',
+    profileInformation: 'Profile Information',
+    saveProfile: 'Save Profile',
+    changePassword: 'Change Password',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    appearance: 'Appearance',
+    contentPreferences: 'Content Preferences',
+    notifications: 'Notifications',
+    emailNewsletter: 'Email Newsletter'
   },
   fr: {
     'Top Stories': 'À la une',
@@ -109,6 +122,18 @@ const translations: Record<Language, Record<string, string>> = {
     registerCTA: 'Créer le compte',
     alreadyHaveAccount: 'Vous avez déjà un compte ?',
     accentColor: "Couleur d'accentuation",
+    advertisement: 'Publicité',
+    backToNews: "Retour aux actualités",
+    profileInformation: "Informations sur le profil",
+    saveProfile: 'Enregistrer le profil',
+    changePassword: 'Changer le mot de passe',
+    currentPassword: 'Mot de passe actuel',
+    newPassword: 'Nouveau mot de passe',
+    confirmNewPassword: 'Confirmer le nouveau mot de passe',
+    appearance: 'Apparence',
+    contentPreferences: 'Préférences de contenu',
+    notifications: 'Notifications',
+    emailNewsletter: 'Newsletter par e-mail'
   },
   rw: {
     'Top Stories': 'Inkuru zikunzwe',
@@ -161,6 +186,18 @@ const translations: Record<Language, Record<string, string>> = {
     registerCTA: 'Fungura Konti',
     alreadyHaveAccount: 'Usanganywe konti?',
     accentColor: "Ibara ry'ibanze",
+    advertisement: ' kwamamaza',
+    backToNews: "Subira ku makuru",
+    profileInformation: "Amakuru y'umwirondoro",
+    saveProfile: 'Bika umwirondoro',
+    changePassword: 'Hindura ijambobanga',
+    currentPassword: 'Ijambobanga rya none',
+    newPassword: 'Ijambobanga rishya',
+    confirmNewPassword: 'Emeza ijambobanga rishya',
+    appearance: 'Imigaragarire',
+    contentPreferences: 'Ibyo ukunda',
+    notifications: 'Amenyesha',
+    emailNewsletter: 'Amakuru kuri imeri'
   },
 };
 

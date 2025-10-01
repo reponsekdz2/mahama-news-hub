@@ -1,4 +1,4 @@
-import { Article } from '../types.ts';
+import { Article, Advertisement } from '../types.ts';
 
 const API_URL = '/api/articles';
 
@@ -13,15 +13,15 @@ const handleResponse = async (response: Response) => {
     return response.json();
 }
 
-export const fetchArticles = async (topic: string, token?: string): Promise<Article[]> => {
+export const fetchArticlesWithAds = async (topic: string, token?: string): Promise<{articles: Article[], ads: Advertisement[]}> => {
     const headers: HeadersInit = {};
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
-    // Fix: The controller expects topic in query params, not as a path segment
     const response = await fetch(`${API_URL}?topic=${encodeURIComponent(topic)}`, { headers });
     return handleResponse(response);
 };
+
 
 export const getArticleById = async (id: string, token?: string): Promise<Article> => {
     const headers: HeadersInit = {};

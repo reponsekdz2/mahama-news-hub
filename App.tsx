@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Header from './components/Header.tsx';
 import MainArticle from './components/MainArticle.tsx';
 import ArticleCard from './components/ArticleCard.tsx';
@@ -10,17 +10,20 @@ import AuthModal from './components/AuthModal.tsx';
 import ArticleModal from './components/ArticleModal.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import SettingsPage from './components/SettingsPage.tsx';
+import AdBanner from './components/AdBanner.tsx';
 import { useAuth } from './contexts/AuthContext.tsx';
 import { useLanguage } from './contexts/LanguageContext.tsx';
 import { useSavedArticles } from './contexts/SavedArticlesContext.tsx';
 import { useSettings } from './contexts/SettingsContext.tsx';
-import { Article } from './types.ts';
-import { fetchArticles } from './services/articleService.ts';
+import { Article, Advertisement } from './types.ts';
+import { fetchArticlesWithAds } from './services/articleService.ts';
 import { fetchPersonalizedNews } from './services/geminiService.ts';
 
 
+type FeedItem = Article | (Advertisement & { isAd: true });
+
 const App: React.FC = () => {
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [selectedTopic, setSelectedTopic] = useState('Top Stories');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +37,8 @@ const App: React.FC = () => {
   const { savedArticles } = useSavedArticles();
   const { loadUserSettings } = useSettings();
 
+  const viewedAds = useRef(new Set<string>());
+
   // On login, fetch user preferences
   useEffect(() => {
     if (user?.token) {
@@ -45,8 +50,11 @@ const App: React.FC = () => {
   const loadNews = useCallback(async () => {
     setLoading(true);
     setError(null);
+    viewedAds.current.clear();
     try {
       let fetchedArticles: Article[] = [];
+      let fetchedAds: Advertisement[] = [];
+
       if (selectedTopic === 'savedArticles') {
           fetchedArticles = savedArticles;
       } else if (selectedTopic === 'forYou' && user?.token) {
@@ -54,11 +62,29 @@ const App: React.FC = () => {
           fetchedArticles = await fetchPersonalizedNews(savedTitles, user.token);
       } else {
           const topicToFetch = searchQuery || selectedTopic;
-          fetchedArticles = await fetchArticles(topicToFetch, user?.token);
+          const { articles, ads } = await fetchArticlesWithAds(topicToFetch, user?.token);
+          fetchedArticles = articles;
+          fetchedAds = ads;
       }
-      setArticles(fetchedArticles);
+
+      // Intersperse ads into the articles list
+      const combinedFeed: FeedItem[] = [...fetchedArticles];
+      if (fetchedAds.length > 0) {
+          for(let i = 0; i < fetchedAds.length; i++) {
+              // Insert an ad after every 4 articles, starting after the 2nd article
+              const ad = fetchedAds[i];
+              const insertIndex = 2 + (i * 5); // 2, 7, 12...
+              if (insertIndex < combinedFeed.length) {
+                  combinedFeed.splice(insertIndex, 0, { ...ad, isAd: true });
+              } else {
+                  combinedFeed.push({ ...ad, isAd: true });
+              }
+          }
+      }
+      setFeedItems(combinedFeed);
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load articles.');
+      setError(err instanceof Error ? err.message : 'Failed to load content.');
     } finally {
       setLoading(false);
       if (view === 'news') {
@@ -96,8 +122,8 @@ const App: React.FC = () => {
       if (targetView === 'news') setSelectedTopic('Top Stories');
   }
 
-  const mainArticle = articles.length > 0 ? articles[0] : null;
-  const otherArticles = articles.slice(1);
+  const mainArticle = feedItems.length > 0 && !('isAd' in feedItems[0]) ? feedItems[0] as Article : null;
+  const otherItems = mainArticle ? feedItems.slice(1) : feedItems;
   
   const renderView = () => {
       switch(view) {
@@ -125,15 +151,19 @@ const App: React.FC = () => {
                     <>
                         {mainArticle ? (
                         <MainArticle article={mainArticle} onReadMore={() => handleReadMore(mainArticle)} />
-                        ) : (
+                        ) : otherItems.length === 0 ? (
                         <p className="text-center py-12 text-gray-500 dark:text-gray-400">{t('noArticlesFound')}</p>
-                        )}
+                        ) : null}
 
-                        {otherArticles.length > 0 && (
+                        {otherItems.length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-                            {otherArticles.map(article => (
-                            <ArticleCard key={article.id} article={article} onReadMore={() => handleReadMore(article)} />
-                            ))}
+                            {otherItems.map(item => 
+                                'isAd' in item ? (
+                                    <AdBanner key={item.id} ad={item} viewedAds={viewedAds} />
+                                ) : (
+                                    <ArticleCard key={item.id} article={item as Article} onReadMore={() => handleReadMore(item as Article)} />
+                                )
+                            )}
                         </div>
                         )}
                     </>

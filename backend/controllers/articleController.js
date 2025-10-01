@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-// @desc    Get articles, optionally by topic/search
+// @desc    Get articles, optionally by topic/search, and include active ads
 // @route   GET /api/articles
 // @access  Public
 const getArticles = async (req, res, next) => {
@@ -25,7 +25,15 @@ const getArticles = async (req, res, next) => {
         query += ' ORDER BY a.createdAt DESC';
 
         const [articles] = await db.query(query, queryParams);
-        res.json(articles);
+        
+        // Fetch active ads
+        const [ads] = await db.query(`
+            SELECT id, title, image_url as imageUrl, link_url as linkUrl
+            FROM advertisements
+            WHERE status = 'active' AND placement = 'in-feed'
+        `);
+
+        res.json({ articles, ads });
     } catch (error) {
         next(error);
     }

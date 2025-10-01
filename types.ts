@@ -1,9 +1,9 @@
-
 export interface User {
   id: string;
   name: string;
   email: string;
   role: 'user' | 'admin';
+  isSubscribed?: boolean;
 }
 
 export interface ArticleSource {
@@ -35,4 +35,23 @@ export interface Comment {
   userName: string;
   content: string;
   createdAt: string;
+}
+
+export interface Advertisement {
+  id: string;
+  title: string;
+  imageUrl: string;
+  linkUrl: string;
+  status: 'active' | 'inactive';
+  placement: 'in-feed' | 'sidebar';
+  impressions: number;
+  clicks: number;
+}
+
+export interface UserPreferences {
+    theme: 'light' | 'dark';
+    language: 'en' | 'fr' | 'rw';
+    accentColor: 'blue' | 'green' | 'red' | 'purple' | 'orange';
+    contentPreferences: string[];
+    newsletter: boolean;
 }

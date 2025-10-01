@@ -7,60 +7,68 @@ const handleResponse = async (response: Response) => {
         const error = await response.json();
         throw new Error(error.message || 'An API error occurred');
     }
-     if (response.status === 204 || response.headers.get('content-length') === '0') {
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
         return null;
     }
     return response.json();
-}
+};
 
-type PreferenceKey = keyof UserPreferences;
-
+// Preferences
 export const getPreferences = async (token: string): Promise<UserPreferences> => {
-    const response = await fetch(`${API_URL}/preferences`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+    const response = await fetch(`${API_URL}/me/preferences`, {
+        headers: { 'Authorization': `Bearer ${token}` }
     });
     return handleResponse(response);
 };
 
-export const updatePreference = async (key: PreferenceKey, value: any, token: string): Promise<any> => {
-    const response = await fetch(`${API_URL}/preferences`, {
+export const updatePreference = async (key: keyof UserPreferences, value: any, token: string): Promise<void> => {
+    await fetch(`${API_URL}/me/preferences`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ key, value })
+        body: JSON.stringify({ [key]: value })
     });
-    return handleResponse(response);
 };
 
-export const updateUserProfile = async (userId: string, data: { name?: string, email?: string }, token: string): Promise<User> => {
-     const response = await fetch(`${API_URL}/${userId}/profile`, {
+// User Profile
+export const updateProfile = async (profileData: { name?: string; email?: string; password?: string }, token: string): Promise<User> => {
+    const response = await fetch(`${API_URL}/me`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(profileData)
     });
     return handleResponse(response);
 }
 
-export const changePassword = async (userId: string, data: { currentPassword?: string, newPassword?: string }, token: string): Promise<{message: string}> => {
-     const response = await fetch(`${API_URL}/${userId}/password`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(data)
-    });
-    return handleResponse(response);
-}
-
+// Reading History
 export const fetchReadingHistory = async (token: string): Promise<Article[]> => {
-    const response = await fetch(`${API_URL}/history`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+    const response = await fetch(`${API_URL}/me/history`, {
+        headers: { 'Authorization': `Bearer ${token}` }
     });
     return handleResponse(response);
+};
+
+export const addToReadingHistory = async (articleId: string, token: string): Promise<void> => {
+    await fetch(`${API_URL}/me/history`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ articleId })
+    });
+};
+
+
+// Account Deletion
+export const deleteAccount = async (token: string): Promise<void> => {
+    await fetch(`${API_URL}/me`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
 }

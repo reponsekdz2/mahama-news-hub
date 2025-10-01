@@ -61,6 +61,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   useEffect(() => {
     applyThemeStyle(theme, accentColor);
+    // Finish loading after initial theme is applied.
+    setIsPersistenceLoading(false);
   }, [theme, accentColor]);
 
   const setTheme = (newTheme: Theme) => {
@@ -99,7 +101,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   return (
     <SettingsContext.Provider value={value}>
       {children}
-    </SettingsContext.Provider>
+    </Settings-context.Provider>
   );
 };
 

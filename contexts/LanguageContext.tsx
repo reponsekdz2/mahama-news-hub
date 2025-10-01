@@ -1,230 +1,29 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { getPreferences, updatePreference } from '../services/userService.ts';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext.tsx';
-import { UserPreferences } from '../types.ts';
+import { getPreferences, updatePreference } from '../services/userService.ts';
 
 type Language = 'en' | 'fr' | 'rw';
 
-// In a real app, this would be in a separate JSON file per language
+// Mock translations as files are not provided
 const translations: Record<Language, Record<string, string>> = {
-  en: {
-    'Top Stories': 'Top Stories',
-    World: 'World',
-    Technology: 'Technology',
-    Science: 'Science',
-    Politics: 'Politics',
-    Sport: 'Sport',
-    Health: 'Health',
-    forYou: 'For You',
-    myLibrary: 'My Library',
-    readingHistory: 'Reading History',
-    settings: 'Settings',
-    logout: 'Logout',
-    login: 'Login',
-    searchPlaceholder: 'Search for topics...',
-    searchAriaLabel: 'Search',
-    backToTop: 'Back to Top',
-    aboutUsText: 'Your daily source for trusted news and analysis. We are committed to delivering the latest updates with accuracy and integrity.',
-    quickLinks: 'Quick Links',
-    followUs: 'Follow Us',
-    language: 'Language',
-    darkMode: 'Dark Mode',
-    poweredBy: 'Powered by Gemini',
-    searchResultsFor: 'Search results for',
-    noArticlesFound: 'No articles found for this topic.',
-    aiTools: 'AI Tools',
-    summarize: 'Summarize Article',
-    getSummary: 'Get Summary',
-    translateTo: 'Translate to',
-    showOriginal: 'Show Original',
-    askQuestion: 'Ask a Question about this Article',
-    questionPlaceholder: 'e.g., What is the main takeaway?',
-    getAnswer: 'Get Answer',
-    generating: 'Generating...',
-    improveWriting: 'Improve with AI',
-    generateImageIdea: 'Generate Image Idea',
-    generateWithAI: 'Generate Article with AI',
-    enterTopic: 'Enter a topic for the article',
-    generate: 'Generate',
-    userMenu: 'Open user menu',
-    loginToYourAccount: 'Login to your account',
-    emailAddress: 'Email Address',
-    password: 'Password',
-    loginCTA: 'Login',
-    dontHaveAccount: "Don't have an account?",
-    register: 'Register',
-    createAnAccount: 'Create an Account',
-    fullName: 'Full Name',
-    confirmPassword: 'Confirm Password',
-    registerCTA: 'Create Account',
-    alreadyHaveAccount: 'Already have an account?',
-    accentColor: 'Accent Color',
-    advertisement: 'Advertisement',
-    backToNews: 'Back to News',
-    profileInformation: 'Profile Information',
-    saveProfile: 'Save Profile',
-    changePassword: 'Change Password',
-    currentPassword: 'Current Password',
-    newPassword: 'New Password',
-    confirmNewPassword: 'Confirm New Password',
-    appearance: 'Appearance',
-    contentPreferences: 'Content Preferences',
-    notifications: 'Notifications',
-    emailNewsletter: 'Email Newsletter',
-    manageCollections: 'Manage Collections',
-    newCollection: 'New Collection',
-    create: 'Create',
-    saveToCollection: 'Save to Collection',
-    saved: 'Saved'
+  en: { 
+      "Top Stories": "Top Stories", "World": "World", "Technology": "Technology", "Science": "Science", "Politics": "Politics", "Sport": "Sport", "Health": "Health", "forYou": "For You", "myLibrary": "My Library", "readingHistory": "Reading History", "settings": "Settings", "logout": "Logout", "login": "Login", "searchPlaceholder": "Search for news...", "searchAriaLabel": "Search", "backToTop": "Back to Top", "userMenu": "User menu", "searchResultsFor": "Search results for", "noArticlesFound": "No articles found for this topic.", "backToNews": "Back to News", "advertisement": "Ad", "aiTools": "AI Tools", "summarize": "Summarize", "getSummary": "Get Summary", "translateTo": "Translate to", "showOriginal": "Show Original", "askQuestion": "Ask a question about the article", "questionPlaceholder": "Your question...", "getAnswer": "Get Answer", "generating": "Generating...", "improveWriting": "Improve with AI", "generateImageIdea": "Generate Image Idea", "generateWithAI": "Generate with AI", "enterTopic": "Enter a topic", "generate": "Generate", "saveToCollection": "Save to Collection", "newCollection": "New collection name...", "create": "Create", "saved": "Save", "loginToYourAccount": "Login to your account", "emailAddress": "Email address", "password": "Password", "loginCTA": "Login", "dontHaveAccount": "Don't have an account?", "register": "Register", "createAnAccount": "Create an Account", "fullName": "Full Name", "confirmPassword": "Confirm Password", "registerCTA": "Create Account", "alreadyHaveAccount": "Already have an account?"
   },
-  fr: {
-    'Top Stories': 'À la une',
-    World: 'Monde',
-    Technology: 'Technologie',
-    Science: 'Science',
-    Politics: 'Politique',
-    Sport: 'Sport',
-    Health: 'Santé',
-    forYou: 'Pour vous',
-    myLibrary: 'Ma bibliothèque',
-    readingHistory: 'Historique de lecture',
-    settings: 'Paramètres',
-    logout: 'Déconnexion',
-    login: 'Connexion',
-    searchPlaceholder: 'Rechercher des sujets...',
-    searchAriaLabel: 'Rechercher',
-    backToTop: 'Retour en haut',
-    aboutUsText: "Votre source quotidienne d'informations et d'analyses fiables. Nous nous engageons à fournir les dernières mises à jour avec précision et intégrité.",
-    quickLinks: 'Liens rapides',
-    followUs: 'Suivez-nous',
-    language: 'Langue',
-    darkMode: 'Mode sombre',
-    poweredBy: 'Propulsé par Gemini',
-    searchResultsFor: 'Résultats de recherche pour',
-    noArticlesFound: 'Aucun article trouvé pour ce sujet.',
-    aiTools: "Outils d'IA",
-    summarize: "Résumer l'article",
-    getSummary: 'Obtenir le résumé',
-    translateTo: 'Traduire en',
-    showOriginal: "Afficher l'original",
-    askQuestion: 'Poser une question sur cet article',
-    questionPlaceholder: 'ex: Quel est le point principal ?',
-    getAnswer: 'Obtenir la réponse',
-    generating: 'Génération...',
-    improveWriting: "Améliorer avec l'IA",
-    generateImageIdea: "Générer une idée d'image",
-    generateWithAI: "Générer un article avec l'IA",
-    enterTopic: "Entrez un sujet pour l'article",
-    generate: 'Générer',
-    userMenu: 'Ouvrir le menu utilisateur',
-    loginToYourAccount: 'Connectez-vous à votre compte',
-    emailAddress: 'Adresse e-mail',
-    password: 'Mot de passe',
-    loginCTA: 'Connexion',
-    dontHaveAccount: "Vous n'avez pas de compte ?",
-    register: "S'inscrire",
-    createAnAccount: 'Créer un compte',
-    fullName: 'Nom complet',
-    confirmPassword: 'Confirmez le mot de passe',
-    registerCTA: 'Créer le compte',
-    alreadyHaveAccount: 'Vous avez déjà un compte ?',
-    accentColor: "Couleur d'accentuation",
-    advertisement: 'Publicité',
-    backToNews: "Retour aux actualités",
-    profileInformation: "Informations sur le profil",
-    saveProfile: 'Enregistrer le profil',
-    changePassword: 'Changer le mot de passe',
-    currentPassword: 'Mot de passe actuel',
-    newPassword: 'Nouveau mot de passe',
-    confirmNewPassword: 'Confirmer le nouveau mot de passe',
-    appearance: 'Apparence',
-    contentPreferences: 'Préférences de contenu',
-    notifications: 'Notifications',
-    emailNewsletter: 'Newsletter par e-mail',
-    manageCollections: 'Gérer les collections',
-    newCollection: 'Nouvelle collection',
-    create: 'Créer',
-    saveToCollection: 'Enregistrer dans la collection',
-    saved: 'Enregistré'
+  fr: { 
+      "Top Stories": "À la une", "World": "Monde", "Technology": "Technologie", "Science": "Science", "Politics": "Politique", "Sport": "Sport", "Health": "Santé", "forYou": "Pour vous", "myLibrary": "Ma bibliothèque", "readingHistory": "Historique", "settings": "Paramètres", "logout": "Déconnexion", "login": "Connexion", "searchPlaceholder": "Rechercher...", "searchAriaLabel": "Rechercher", "backToTop": "Retour en haut", "userMenu": "Menu utilisateur", "searchResultsFor": "Résultats pour", "noArticlesFound": "Aucun article trouvé.", "backToNews": "Retour aux actualités", "advertisement": "Publicité", "aiTools": "Outils IA", "summarize": "Résumer", "getSummary": "Obtenir le résumé", "translateTo": "Traduire en", "showOriginal": "Afficher l'original", "askQuestion": "Poser une question sur l'article", "questionPlaceholder": "Votre question...", "getAnswer": "Obtenir la réponse", "generating": "Génération...", "improveWriting": "Améliorer avec l'IA", "generateImageIdea": "Idée d'image IA", "generateWithAI": "Générer avec l'IA", "enterTopic": "Saisir un sujet", "generate": "Générer", "saveToCollection": "Enregistrer dans", "newCollection": "Nom de la collection...", "create": "Créer", "saved": "Enregistrer", "loginToYourAccount": "Connectez-vous", "emailAddress": "Adresse e-mail", "password": "Mot de passe", "loginCTA": "Connexion", "dontHaveAccount": "Pas de compte ?", "register": "S'inscrire", "createAnAccount": "Créer un compte", "fullName": "Nom complet", "confirmPassword": "Confirmez le mot de passe", "registerCTA": "Créer le compte", "alreadyHaveAccount": "Déjà un compte ?" 
   },
-  rw: {
-    'Top Stories': 'Inkuru zikunzwe',
-    World: 'Isi',
-    Technology: 'Ikoranabuhanga',
-    Science: 'Siyansi',
-    Politics: 'Politiki',
-    Sport: 'Imikino',
-    Health: 'Ubuzima',
-    forYou: 'Ibyakugenewe',
-    myLibrary: 'Ibitabo byanjye',
-    readingHistory: 'Ibyo nasomye',
-    settings: 'Uburyo',
-    logout: 'Gusohoka',
-    login: 'Injira',
-    searchPlaceholder: 'Shakisha...',
-    searchAriaLabel: 'Shakisha',
-    backToTop: 'Subira hejuru',
-    aboutUsText: 'Aho ukura amakuru yizewe buri munsi. Twiyemeje kuguha amakuru agezweho mu kuri no mu mucyo.',
-    quickLinks: 'Ahandi wanyura',
-    followUs: 'Dukurikire',
-    language: 'Ururimi',
-    darkMode: 'Uburyo bwijimye',
-    poweredBy: 'Bikorwa na Gemini',
-    searchResultsFor: 'Ibyavuye mu gushakisha',
-    noArticlesFound: 'Nta nkuru zibonetse kuri uyu mutwe.',
-    aiTools: 'Ibikoresho bya AI',
-    summarize: 'Vunagura iyi nyandiko',
-    getSummary: 'Bona incamake',
-    translateTo: 'Hindura mu',
-    showOriginal: 'Garagaza umwimerere',
-    askQuestion: 'Baza ikibazo kuri iyi nyandiko',
-    questionPlaceholder: 'Urugero: Niki cyingenzi kivugwamo?',
-    getAnswer: 'Bona igisubizo',
-    generating: 'Birimo gukorwa...',
-    improveWriting: 'Nosa inyandiko na AI',
-    generateImageIdea: 'Tekereza igishushanyo',
-    generateWithAI: 'Kora inyandiko na AI',
-    enterTopic: "Andika umutwe w'inyandiko",
-    generate: 'Kora',
-    userMenu: "Fungura menu y'ukoresha",
-    loginToYourAccount: 'Injira muri konti yawe',
-    emailAddress: 'Imeri',
-    password: 'Ijambobanga',
-    loginCTA: 'Injira',
-    dontHaveAccount: "Ntafite konti?",
-    register: 'Iyandikishe',
-    createAnAccount: 'Fungura konti',
-    fullName: 'Amazina yose',
-    confirmPassword: 'Emeza ijambobanga',
-    registerCTA: 'Fungura Konti',
-    alreadyHaveAccount: 'Usanganywe konti?',
-    accentColor: "Ibara ry'ibanze",
-    advertisement: ' kwamamaza',
-    backToNews: "Subira ku makuru",
-    profileInformation: "Amakuru y'umwirondoro",
-    saveProfile: 'Bika umwirondoro',
-    changePassword: 'Hindura ijambobanga',
-    currentPassword: 'Ijambobanga rya none',
-    newPassword: 'Ijambobanga rishya',
-    confirmNewPassword: 'Emeza ijambobanga rishya',
-    appearance: 'Imigaragarire',
-    contentPreferences: 'Ibyo ukunda',
-    notifications: 'Amenyesha',
-    emailNewsletter: 'Amakuru kuri imeri',
-    manageCollections: 'Gucunga Ibyegeranyo',
-    newCollection: 'Icyegeranyo gishya',
-    create: 'Kurema',
-    saveToCollection: 'Bika mu cyegeranyo',
-    saved: 'Byabitswe'
+  rw: { 
+      "Top Stories": "Inkuru z'ingenzi", "World": "Isi", "Technology": "Ikoranabuhanga", "Science": "Siyansi", "Politics": "Politiki", "Sport": "Siporo", "Health": "Ubuzima", "forYou": "Ibyahiswemo", "myLibrary": "Ibitabo byanjye", "readingHistory": "Amateka", "settings": "Igenamiterere", "logout": "Gusohoka", "login": "Injira", "searchPlaceholder": "Shakisha amakuru...", "searchAriaLabel": "Shakisha", "backToTop": "Subira hejuru", "userMenu": "Ibikubiyemo", "searchResultsFor": "Ibisubizo bya", "noArticlesFound": "Nta nkuru zibonetse.", "backToNews": "Subira ku makuru", "advertisement": " kwamamaza", "aiTools": "Ibikoresho bya AI", "summarize": "Incamake", "getSummary": "Shaka incamake", "translateTo": "Hindura mu", "showOriginal": "Erekana umwimerere", "askQuestion": "Baza ikibazo", "questionPlaceholder": "Ikibazo cyawe...", "getAnswer": "Shaka igisubizo", "generating": "Birimo gukorwa...", "improveWriting": "Nonoza n'AI", "generateImageIdea": "Igitekerezo cy'ishusho", "generateWithAI": "Kora n'AI", "enterTopic": "Andika umutwe", "generate": "Kora", "saveToCollection": "Bika muri", "newCollection": "Izina ry'icyegeranyo...", "create": "Kurema", "saved": "Bika", "loginToYourAccount": "Injira muri konti", "emailAddress": "Imeyili", "password": "Ijambobanga", "loginCTA": "Injira", "dontHaveAccount": "Ntafite konti?", "register": "Iyandikishe", "createAnAccount": "Fungura Konti", "fullName": "Amazina yose", "confirmPassword": "Emeza ijambobanga", "registerCTA": "Fungura Konti", "alreadyHaveAccount": "Usanganywe konti?" 
   },
 };
+
 
 export const CATEGORIES = ['Top Stories', 'World', 'Technology', 'Science', 'Politics', 'Sport', 'Health'];
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, ...args: any[]) => string;
   loadUserLanguage: (token: string) => Promise<void>;
 }
 
@@ -240,15 +39,23 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
         return storedLang;
       }
       const browserLang = navigator.language.split('-')[0];
-      if (['fr', 'rw'].includes(browserLang)) return browserLang as Language;
+      if (['en', 'fr', 'rw'].includes(browserLang)) {
+        return browserLang as Language;
+      }
     }
     return 'en';
   };
   
   const [language, _setLanguage] = useState<Language>(getInitialLanguage);
 
-  const t = (key: string): string => {
-    return translations[language][key] || key;
+  const t = (key: string, ...args: any[]): string => {
+    let translation = translations[language]?.[key] || key;
+    if (args.length > 0) {
+      args.forEach((arg, index) => {
+        translation = translation.replace(`{${index}}`, arg);
+      });
+    }
+    return translation;
   };
 
   const setLanguage = (newLanguage: Language) => {
@@ -258,21 +65,27 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
       updatePreference('language', newLanguage, user.token).catch(console.error);
     }
   };
-  
+
   const loadUserLanguage = useCallback(async (token: string) => {
     try {
-        const prefs = await getPreferences(token);
-        if (prefs.language) {
-          _setLanguage(prefs.language);
-          localStorage.setItem('language', prefs.language);
-        }
+      const prefs = await getPreferences(token);
+      if (prefs.language) {
+        _setLanguage(prefs.language);
+        localStorage.setItem('language', prefs.language);
+      }
     } catch (error) {
-        console.warn("Could not load user language from DB, using local.", error);
+      console.warn("Could not load user language from DB, using local.", error);
     }
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+  
+  const value = { language, setLanguage, t, loadUserLanguage };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, loadUserLanguage }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

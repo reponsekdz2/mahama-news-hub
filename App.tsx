@@ -194,7 +194,7 @@ const App: React.FC = () => {
         onTopicChange={handleTopicChange}
         onSearch={handleSearch}
         onOpenLogin={() => setIsAuthModalOpen(true)}
-        onNavigate={(target) => handleNavigation(target)}
+        onNavigate={(target) => handleNavigation(target as 'admin' | 'settings')}
       />
 
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 flex-grow">

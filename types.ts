@@ -3,38 +3,31 @@ export interface User {
   name: string;
   email: string;
   role: 'user' | 'admin';
-  isSubscribed?: boolean;
 }
 
-export interface ArticleSource {
-  title: string;
-  uri: string;
+export interface AuthenticatedUser extends User {
+  token: string;
+}
+
+export interface UserPreferences {
+    theme: 'light' | 'dark';
+    accentColor: 'red' | 'orange' | 'green' | 'blue' | 'purple' | 'teal' | 'pink';
+    language: 'en' | 'fr' | 'rw';
 }
 
 export interface Article {
   id: string;
   title: string;
+  summary: string;
   content: string;
   category: string;
   imageUrl: string;
-  videoUrl?: string | null;
-  authorId?: string;
+  videoUrl?: string;
   authorName: string;
-  createdAt?: string;
-  updatedAt?: string;
   viewCount: number;
   likeCount: number;
-  isLiked: boolean;
-  sources?: ArticleSource[];
-}
-
-export interface Comment {
-  id: string;
-  articleId: string;
-  userId: string;
-  userName: string;
-  content: string;
-  createdAt: string;
+  isLiked?: boolean; // Optional as it might depend on the user context
+  sources?: { title: string; uri: string }[];
 }
 
 export interface Advertisement {
@@ -48,17 +41,16 @@ export interface Advertisement {
   clicks: number;
 }
 
-export interface UserPreferences {
-    theme: 'light' | 'dark';
-    language: 'en' | 'fr' | 'rw';
-    accentColor: 'blue' | 'green' | 'red' | 'purple' | 'orange' | 'teal' | 'pink';
-    contentPreferences: string[];
-    newsletter: boolean;
+export interface Comment {
+    id: string;
+    content: string;
+    createdAt: string;
+    userName: string;
 }
 
 export interface Collection {
     id: string;
     name: string;
-    articleCount?: number;
     articles?: Article[];
+    articleCount?: number;
 }

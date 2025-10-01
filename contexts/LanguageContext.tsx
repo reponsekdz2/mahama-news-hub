@@ -16,7 +16,8 @@ const translations: Record<Language, Record<string, string>> = {
     Sport: 'Sport',
     Health: 'Health',
     forYou: 'For You',
-    savedArticles: 'Saved Articles',
+    myLibrary: 'My Library',
+    readingHistory: 'Reading History',
     settings: 'Settings',
     logout: 'Logout',
     login: 'Login',
@@ -69,7 +70,12 @@ const translations: Record<Language, Record<string, string>> = {
     appearance: 'Appearance',
     contentPreferences: 'Content Preferences',
     notifications: 'Notifications',
-    emailNewsletter: 'Email Newsletter'
+    emailNewsletter: 'Email Newsletter',
+    manageCollections: 'Manage Collections',
+    newCollection: 'New Collection',
+    create: 'Create',
+    saveToCollection: 'Save to Collection',
+    saved: 'Saved'
   },
   fr: {
     'Top Stories': 'À la une',
@@ -80,7 +86,8 @@ const translations: Record<Language, Record<string, string>> = {
     Sport: 'Sport',
     Health: 'Santé',
     forYou: 'Pour vous',
-    savedArticles: 'Articles sauvegardés',
+    myLibrary: 'Ma bibliothèque',
+    readingHistory: 'Historique de lecture',
     settings: 'Paramètres',
     logout: 'Déconnexion',
     login: 'Connexion',
@@ -133,7 +140,12 @@ const translations: Record<Language, Record<string, string>> = {
     appearance: 'Apparence',
     contentPreferences: 'Préférences de contenu',
     notifications: 'Notifications',
-    emailNewsletter: 'Newsletter par e-mail'
+    emailNewsletter: 'Newsletter par e-mail',
+    manageCollections: 'Gérer les collections',
+    newCollection: 'Nouvelle collection',
+    create: 'Créer',
+    saveToCollection: 'Enregistrer dans la collection',
+    saved: 'Enregistré'
   },
   rw: {
     'Top Stories': 'Inkuru zikunzwe',
@@ -144,7 +156,8 @@ const translations: Record<Language, Record<string, string>> = {
     Sport: 'Imikino',
     Health: 'Ubuzima',
     forYou: 'Ibyakugenewe',
-    savedArticles: 'Inyandiko wabitse',
+    myLibrary: 'Ibitabo byanjye',
+    readingHistory: 'Ibyo nasomye',
     settings: 'Uburyo',
     logout: 'Gusohoka',
     login: 'Injira',
@@ -197,7 +210,12 @@ const translations: Record<Language, Record<string, string>> = {
     appearance: 'Imigaragarire',
     contentPreferences: 'Ibyo ukunda',
     notifications: 'Amenyesha',
-    emailNewsletter: 'Amakuru kuri imeri'
+    emailNewsletter: 'Amakuru kuri imeri',
+    manageCollections: 'Gucunga Ibyegeranyo',
+    newCollection: 'Icyegeranyo gishya',
+    create: 'Kurema',
+    saveToCollection: 'Bika mu cyegeranyo',
+    saved: 'Byabitswe'
   },
 };
 

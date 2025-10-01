@@ -7,7 +7,8 @@ const {
     getUserPreferences,
     updateUserPreference,
     updateUserProfile,
-    changeUserPassword
+    changeUserPassword,
+    getUserReadingHistory
 } = require('../controllers/userController');
 const { protect, adminProtect } = require('../middleware/authMiddleware');
 
@@ -21,6 +22,7 @@ router.get('/preferences', protect, getUserPreferences);
 router.put('/preferences', protect, updateUserPreference);
 router.put('/:id/profile', protect, updateUserProfile);
 router.put('/:id/password', protect, changeUserPassword);
+router.get('/history', protect, getUserReadingHistory);
 
 
 module.exports = router;

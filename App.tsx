@@ -11,16 +11,18 @@ import ArticleModal from './components/ArticleModal.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import SettingsPage from './components/SettingsPage.tsx';
 import AdBanner from './components/AdBanner.tsx';
+import LibraryPage from './components/LibraryPage.tsx';
 import { useAuth } from './contexts/AuthContext.tsx';
 import { useLanguage } from './contexts/LanguageContext.tsx';
-import { useSavedArticles } from './contexts/SavedArticlesContext.tsx';
+import { useLibrary } from './contexts/LibraryContext.tsx';
 import { useSettings } from './contexts/SettingsContext.tsx';
 import { Article, Advertisement } from './types.ts';
 import { fetchArticlesWithAds } from './services/articleService.ts';
 import { fetchPersonalizedNews } from './services/geminiService.ts';
-
+import { fetchReadingHistory } from './services/userService.ts';
 
 type FeedItem = Article | (Advertisement & { isAd: true });
+type View = 'news' | 'admin' | 'settings' | 'library';
 
 const App: React.FC = () => {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
@@ -30,36 +32,42 @@ const App: React.FC = () => {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [view, setView] = useState<'news' | 'admin' | 'settings'>('news');
+  const [view, setView] = useState<View>('news');
   
   const { user, isLoggedIn, login } = useAuth();
   const { t, loadUserLanguage } = useLanguage();
-  const { savedArticles } = useSavedArticles();
+  const { fetchLibrary, collections } = useLibrary();
   const { loadUserSettings } = useSettings();
 
   const viewedAds = useRef(new Set<string>());
 
-  // On login, fetch user preferences
   useEffect(() => {
     if (user?.token) {
       loadUserLanguage(user.token);
       loadUserSettings(user.token);
+      fetchLibrary();
     }
-  }, [user?.token, loadUserLanguage, loadUserSettings]);
+  }, [user?.token, loadUserLanguage, loadUserSettings, fetchLibrary]);
 
   const loadNews = useCallback(async () => {
+    if (['myLibrary'].includes(selectedTopic)) {
+      setView('library');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     viewedAds.current.clear();
+    
     try {
       let fetchedArticles: Article[] = [];
       let fetchedAds: Advertisement[] = [];
 
-      if (selectedTopic === 'savedArticles') {
-          fetchedArticles = savedArticles;
+      if (selectedTopic === 'readingHistory' && user?.token) {
+          fetchedArticles = await fetchReadingHistory(user.token);
       } else if (selectedTopic === 'forYou' && user?.token) {
-          const savedTitles = savedArticles.map(a => a.title);
-          fetchedArticles = await fetchPersonalizedNews(savedTitles, user.token);
+          const favoriteCategories = collections.find(c => c.name === 'Read Later')?.articles?.map(a => a.category) || [];
+          fetchedArticles = await fetchPersonalizedNews(favoriteCategories, user.token);
       } else {
           const topicToFetch = searchQuery || selectedTopic;
           const { articles, ads } = await fetchArticlesWithAds(topicToFetch, user?.token);
@@ -71,7 +79,6 @@ const App: React.FC = () => {
       const combinedFeed: FeedItem[] = [...fetchedArticles];
       if (fetchedAds.length > 0) {
           for(let i = 0; i < fetchedAds.length; i++) {
-              // Insert an ad after every 4 articles, starting after the 2nd article
               const ad = fetchedAds[i];
               const insertIndex = 2 + (i * 5); // 2, 7, 12...
               if (insertIndex < combinedFeed.length) {
@@ -91,7 +98,7 @@ const App: React.FC = () => {
         window.scrollTo(0, 0);
       }
     }
-  }, [selectedTopic, searchQuery, isLoggedIn, savedArticles, user?.token, view]);
+  }, [selectedTopic, searchQuery, user?.token, collections, view]);
 
   useEffect(() => {
     if(view === 'news') {
@@ -102,7 +109,11 @@ const App: React.FC = () => {
   const handleTopicChange = (topic: string) => {
     setSearchQuery('');
     setSelectedTopic(topic);
-    setView('news');
+    if (topic === 'myLibrary') {
+        setView('library');
+    } else {
+        setView('news');
+    }
   };
 
   const handleSearch = (query: string) => {
@@ -115,10 +126,11 @@ const App: React.FC = () => {
     setSelectedArticle(article);
   };
   
-  const handleNavigation = (targetView: 'news' | 'admin' | 'settings') => {
+  const handleNavigation = (targetView: 'news' | 'admin' | 'settings' | 'library') => {
       setView(targetView);
       if (targetView === 'admin') setSelectedTopic('Admin Panel');
       if (targetView === 'settings') setSelectedTopic('Settings');
+      if (targetView === 'library') setSelectedTopic('myLibrary');
       if (targetView === 'news') setSelectedTopic('Top Stories');
   }
 
@@ -131,6 +143,8 @@ const App: React.FC = () => {
             return <AdminPanel onNavigateBack={() => handleNavigation('news')} />;
           case 'settings':
             return <SettingsPage onNavigateBack={() => handleNavigation('news')} />;
+          case 'library':
+            return <LibraryPage onNavigateBack={() => handleNavigation('news')} onReadArticle={handleReadMore} />;
           case 'news':
           default:
              return (

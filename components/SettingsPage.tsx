@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useSettings, availableColors, ACCENT_COLORS } from '../contexts/SettingsContext.tsx';
 import { useLanguage, CATEGORIES } from '../contexts/LanguageContext.tsx';
+import { useLibrary } from '../contexts/LibraryContext.tsx';
 // Fix: Renamed 'getUserPreferences' to 'getPreferences' to match the exported function name.
 import { updateUserProfile, changePassword, getPreferences, updatePreference } from '../services/userService.ts';
 import { UserPreferences } from '../types.ts';
@@ -14,6 +15,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
   const { user, updateUser, logout } = useAuth();
   const { theme, setTheme, accentColor, setAccentColor } = useSettings();
   const { language, setLanguage, t } = useLanguage();
+  const { collections, renameCollection, deleteCollection } = useLibrary();
 
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -28,6 +30,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [editingCollectionId, setEditingCollectionId] = useState<string | null>(null);
+  const [editingCollectionName, setEditingCollectionName] = useState('');
 
   useEffect(() => {
     const fetchPrefs = async () => {
@@ -106,6 +110,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
       handlePreferenceChange('newsletter', newValue);
   }
 
+  const handleRenameCollection = async (collectionId: string) => {
+    if (!editingCollectionName.trim()) return;
+    await renameCollection(collectionId, editingCollectionName.trim());
+    setEditingCollectionId(null);
+    setEditingCollectionName('');
+  };
+
   const Section: React.FC<{title: string, children: React.ReactNode}> = ({title, children}) => (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 border-b dark:border-gray-700 pb-2">{title}</h2>
@@ -161,6 +172,32 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
                         {isLoading ? 'Saving...' : t('changePassword')}
                     </button>
                 </form>
+            </Section>
+
+            <Section title={t('manageCollections')}>
+                <ul className="space-y-3">
+                    {collections.filter(c => c.name !== 'Read Later').map(collection => (
+                        <li key={collection.id} className="flex items-center justify-between">
+                           {editingCollectionId === collection.id ? (
+                                <input
+                                    type="text"
+                                    value={editingCollectionName}
+                                    onChange={(e) => setEditingCollectionName(e.target.value)}
+                                    onBlur={() => handleRenameCollection(collection.id)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleRenameCollection(collection.id)}
+                                    className="block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500"
+                                    autoFocus
+                                />
+                           ) : (
+                                <span className="text-gray-700 dark:text-gray-300">{collection.name}</span>
+                           )}
+                           <div className="flex space-x-2">
+                               <button onClick={() => { setEditingCollectionId(collection.id); setEditingCollectionName(collection.name); }} className="text-accent-500 hover:underline text-sm">Rename</button>
+                               <button onClick={() => deleteCollection(collection.id)} className="text-red-500 hover:underline text-sm">Delete</button>
+                           </div>
+                        </li>
+                    ))}
+                </ul>
             </Section>
         </div>
         <div className="space-y-8">

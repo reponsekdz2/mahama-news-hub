@@ -51,7 +51,14 @@ export interface Advertisement {
 export interface UserPreferences {
     theme: 'light' | 'dark';
     language: 'en' | 'fr' | 'rw';
-    accentColor: 'blue' | 'green' | 'red' | 'purple' | 'orange';
+    accentColor: 'blue' | 'green' | 'red' | 'purple' | 'orange' | 'teal' | 'pink';
     contentPreferences: string[];
     newsletter: boolean;
+}
+
+export interface Collection {
+    id: string;
+    name: string;
+    articleCount?: number;
+    articles?: Article[];
 }

@@ -9,7 +9,7 @@ import { LanguageProvider } from './contexts/LanguageContext.tsx';
 // Fix: Add .tsx extension to module imports
 import { AuthProvider } from './contexts/AuthContext.tsx';
 // Fix: Add .tsx extension to module imports
-import { SavedArticlesProvider } from './contexts/SavedArticlesContext.tsx';
+import { LibraryProvider } from './contexts/LibraryContext.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -22,9 +22,9 @@ root.render(
     <AuthProvider>
       <SettingsProvider>
         <LanguageProvider>
-          <SavedArticlesProvider>
+          <LibraryProvider>
             <App />
-          </SavedArticlesProvider>
+          </LibraryProvider>
         </LanguageProvider>
       </SettingsProvider>
     </AuthProvider>

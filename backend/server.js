@@ -22,6 +22,7 @@ app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/gemini', require('./routes/geminiRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/ads', require('./routes/adRoutes'));
+app.use('/api/collections', require('./routes/collectionRoutes'));
 
 
 // Custom Error Handler

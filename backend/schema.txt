@@ -14,7 +14,7 @@ CREATE TABLE `users` (
 CREATE TABLE `user_preferences` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `user_id` INT NOT NULL UNIQUE,
-  `theme` ENUM('light', 'dark') DEFAULT 'light',
+  `theme` ENUM('light', 'dark') DEFAULT 'dark',
   `language` ENUM('en', 'fr', 'rw') DEFAULT 'en',
   `accent_color` VARCHAR(50) DEFAULT 'red',
   `content_preferences` JSON,
@@ -46,14 +46,15 @@ CREATE TABLE `article_likes` (
   UNIQUE KEY `user_article_like` (`user_id`,`article_id`)
 );
 
--- Article Views Table
+-- Article Views Table (for Reading History)
 CREATE TABLE `article_views` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `article_id` INT NOT NULL,
-  `user_id` INT, -- Can be NULL for anonymous views
+  `user_id` INT NOT NULL, 
   `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`article_id`) REFERENCES `articles`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  UNIQUE KEY `user_article_view` (`user_id`, `article_id`)
 );
 
 -- Comments Table
@@ -67,6 +68,26 @@ CREATE TABLE `comments` (
   FOREIGN KEY (`article_id`) REFERENCES `articles`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
+
+-- Collections Table
+CREATE TABLE `collections` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+);
+
+-- Collection Articles Join Table
+CREATE TABLE `collection_articles` (
+  `collection_id` INT NOT NULL,
+  `article_id` INT NOT NULL,
+  `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`collection_id`, `article_id`),
+  FOREIGN KEY (`collection_id`) REFERENCES `collections`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`article_id`) REFERENCES `articles`(`id`) ON DELETE CASCADE
+);
+
 
 -- Advertisements Table
 CREATE TABLE `advertisements` (

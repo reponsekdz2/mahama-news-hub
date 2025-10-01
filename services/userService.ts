@@ -1,4 +1,4 @@
-import { User, UserPreferences } from '../types.ts';
+import { User, UserPreferences, Article } from '../types.ts';
 
 const API_URL = '/api/users';
 
@@ -54,6 +54,13 @@ export const changePassword = async (userId: string, data: { currentPassword?: s
             'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(data)
+    });
+    return handleResponse(response);
+}
+
+export const fetchReadingHistory = async (token: string): Promise<Article[]> => {
+    const response = await fetch(`${API_URL}/history`, {
+        headers: { 'Authorization': `Bearer ${token}` },
     });
     return handleResponse(response);
 }

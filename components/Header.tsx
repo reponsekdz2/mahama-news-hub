@@ -64,7 +64,8 @@ const UserMenu: React.FC<{onTopicChange: (topic: string) => void, onLogout: () =
                            <button onClick={() => handleNavigateAndClose('admin')} className="block w-full text-left px-4 py-2 text-sm font-semibold text-accent-600 dark:text-accent-400 hover:bg-gray-100 dark:hover:bg-gray-700">Admin Panel</button>
                         )}
                         <button onClick={() => handleSelectAndClose('forYou')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{t('forYou')}</button>
-                        <button onClick={() => handleSelectAndClose('savedArticles')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{t('savedArticles')}</button>
+                        <button onClick={() => handleSelectAndClose('myLibrary')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{t('myLibrary')}</button>
+                        <button onClick={() => handleSelectAndClose('readingHistory')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{t('readingHistory')}</button>
                         <button onClick={() => handleNavigateAndClose('settings')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{t('settings')}</button>
                         <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
                         <button onClick={onLogout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">{t('logout')}</button>
@@ -82,7 +83,8 @@ const Header: React.FC<HeaderProps> = ({ selectedTopic, onTopicChange, onSearch,
   const menuRef = useRef<HTMLDivElement>(null);
 
   const baseNavCategories = CATEGORIES;
-  const allNavCategories = isLoggedIn ? [...baseNavCategories, 'forYou', 'savedArticles'] : baseNavCategories;
+  const loggedInNavCategories = ['forYou', 'myLibrary', 'readingHistory'];
+  const allNavCategories = isLoggedIn ? [...baseNavCategories, ...loggedInNavCategories] : baseNavCategories;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

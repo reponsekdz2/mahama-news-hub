@@ -164,6 +164,30 @@ const changeUserPassword = async (req, res, next) => {
     }
 }
 
+// @desc    Get user's reading history
+// @route   GET /api/users/history
+// @access  Protected
+const getUserReadingHistory = async (req, res, next) => {
+    try {
+        const [articles] = await db.query(`
+            SELECT 
+                a.id, a.title, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl,
+                u.name as authorName,
+                (SELECT COUNT(*) FROM article_views WHERE article_id = a.id) as viewCount,
+                (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as likeCount,
+                (SELECT COUNT(*) > 0 FROM article_likes WHERE article_id = a.id AND user_id = ?) as isLiked
+            FROM article_views v
+            JOIN articles a ON v.article_id = a.id
+            JOIN users u ON a.author_id = u.id
+            WHERE v.user_id = ?
+            ORDER BY v.createdAt DESC
+        `, [req.user.id, req.user.id]);
+        res.json(articles);
+    } catch (error) {
+        next(error);
+    }
+};
+
 
 module.exports = {
     getAllUsers,
@@ -173,4 +197,5 @@ module.exports = {
     updateUserPreference,
     updateUserProfile,
     changeUserPassword,
+    getUserReadingHistory,
 };

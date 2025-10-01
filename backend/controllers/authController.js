@@ -1,49 +1,96 @@
-/**
- * @desc    Authenticate a user
- */
-const loginUser = (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Please provide an email and password' });
+const db = require('../config/db');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+// @desc    Register a new user
+// @route   POST /api/auth/register
+// @access  Public
+const registerUser = async (req, res, next) => {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+        return res.status(400).json({ message: 'Please enter all fields' });
     }
 
-    // Check for Admin credentials
-    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-        console.log(`Admin login successful for: ${email}`);
-        return res.status(200).json({ 
-            message: 'Admin login successful',
-            user: { name: 'Admin', email: email, role: 'admin' },
-            token: 'sample.admin.jwt.token' 
-        });
-    }
+    try {
+        const [userExists] = await db.query('SELECT email FROM users WHERE email = ?', [email]);
 
-    // Simulate successful regular user login
-    console.log(`Login attempt for: ${email}`);
-    res.status(200).json({ 
-        message: 'Login successful (simulated)',
-        user: { name: 'Test User', email: email, role: 'user' },
-        token: 'sample.user.jwt.token' 
-    });
+        if (userExists.length > 0) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const [result] = await db.query('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, hashedPassword]);
+        const newUser_id = result.insertId;
+
+        const [newUser] = await db.query('SELECT id, name, email, role FROM users WHERE id = ?', [newUser_id]);
+        
+        // Create default preferences for the new user
+        await db.query('INSERT INTO user_preferences (user_id) VALUES (?)', [newUser_id]);
+
+        if (newUser.length > 0) {
+            const token = generateToken(newUser[0].id);
+            res.status(201).json({
+                user: newUser[0],
+                token
+            });
+        } else {
+            res.status(400).json({ message: 'Invalid user data' });
+        }
+    } catch (error) {
+        next(error);
+    }
 };
 
-/**
- * @desc    Register a new user
- */
-const registerUser = (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-        return res.status(400).json({ message: 'Please provide name, email, and password' });
+// @desc    Authenticate user & get token
+// @route   POST /api/auth/login
+// @access  Public
+const loginUser = async (req, res, next) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Please provide email and password' });
     }
-    console.log(`Registering new user: ${name} (${email})`);
-    // Simulate successful registration
-    res.status(201).json({ 
-        message: 'User registered successfully (simulated)',
-        user: { name, email, role: 'user' },
-        token: 'sample.user.jwt.token'
+
+    try {
+        const [users] = await db.query('SELECT id, name, email, role, password FROM users WHERE email = ?', [email]);
+
+        if (users.length > 0) {
+            const user = users[0];
+            const isMatch = await bcrypt.compare(password, user.password);
+
+            if (isMatch) {
+                const token = generateToken(user.id);
+                res.json({
+                    user: {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                    },
+                    token
+                });
+            } else {
+                res.status(400).json({ message: 'Invalid credentials' });
+            }
+        } else {
+            res.status(400).json({ message: 'Invalid credentials' });
+        }
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Generate JWT
+const generateToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+        expiresIn: '30d',
     });
 };
 
 module.exports = {
-    loginUser,
     registerUser,
+    loginUser,
 };

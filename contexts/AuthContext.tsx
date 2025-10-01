@@ -1,49 +1,66 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '../types';
+import { User } from '../types.ts';
+
+// Add token to the user object for session management
+type AuthenticatedUser = User & { token: string };
 
 interface AuthContextType {
+  user: AuthenticatedUser | null;
   isLoggedIn: boolean;
-  user: User | null;
-  login: (user: User) => void;
+  login: (user: AuthenticatedUser) => void;
   logout: () => void;
+  updateUser: (updatedUser: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const getStoredUser = (): User | null => {
-  if (typeof window === 'undefined') return null;
-  try {
-    const item = window.localStorage.getItem('user');
-    return item ? JSON.parse(item) : null;
-  } catch (error) {
-    console.warn('Error reading user from localStorage:', String(error));
-    return null;
-  }
-};
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(getStoredUser);
+  const [user, setUser] = useState<AuthenticatedUser | null>(null);
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (error) {
+      console.error("Failed to parse user from localStorage", error);
       localStorage.removeItem('user');
     }
-  }, [user]);
+  }, []);
 
-  const login = (userData: User) => {
+  const login = (userData: AuthenticatedUser) => {
     setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('savedArticles');
+    // Also reset preferences to local defaults
+    localStorage.removeItem('theme');
+    localStorage.removeItem('accentColor');
+    localStorage.removeItem('language');
+    // Force a reload to clear all state and apply default theme/lang
+    window.location.reload();
   };
+  
+  const updateUser = (updatedUserData: User) => {
+      setUser(currentUser => {
+          if (!currentUser) return null;
+          const newUserData = { ...currentUser, ...updatedUserData };
+          localStorage.setItem('user', JSON.stringify(newUserData));
+          return newUserData;
+      })
+  }
 
-  const isAdmin = user?.role === 'admin';
+  const isLoggedIn = !!user;
+
+  const value = { user, isLoggedIn, login, logout, updateUser };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn: !!user, user, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

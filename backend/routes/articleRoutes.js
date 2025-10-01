@@ -1,28 +1,34 @@
 const express = require('express');
 const router = express.Router();
-const { 
+const {
     getArticles,
+    getArticleById,
     createArticle,
     updateArticle,
-    deleteArticle
+    deleteArticle,
+    likeArticle,
+    unlikeArticle,
+    recordView,
+    getCommentsForArticle,
+    addCommentToArticle
 } = require('../controllers/articleController');
-const { adminProtect } = require('../middleware/authMiddleware');
+const { protect, adminProtect } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
-// @route   GET api/articles
-// @desc    Get all articles (public)
-router.get('/', getArticles);
+// Public routes
+router.get('/', getArticles); 
+router.get('/:id', getArticleById);
+router.post('/:id/view', recordView);
+router.get('/:id/comments', getCommentsForArticle);
 
-// @route   POST api/articles
-// @desc    Create a new article (admin only)
-router.post('/', adminProtect, createArticle);
+// Protected routes (user must be logged in)
+router.post('/:id/like', protect, likeArticle);
+router.delete('/:id/like', protect, unlikeArticle);
+router.post('/:id/comments', protect, addCommentToArticle);
 
-// @route   PUT api/articles/:id
-// @desc    Update an article (admin only)
-router.put('/:id', adminProtect, updateArticle);
-
-// @route   DELETE api/articles/:id
-// @desc    Delete an article (admin only)
+// Admin routes (user must be an admin)
+router.post('/', adminProtect, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'video', maxCount: 1 }]), createArticle);
+router.put('/:id', adminProtect, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'video', maxCount: 1 }]), updateArticle);
 router.delete('/:id', adminProtect, deleteArticle);
-
 
 module.exports = router;

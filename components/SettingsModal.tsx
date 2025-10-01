@@ -1,7 +1,10 @@
 
+
 import React from 'react';
-import { useSettings, availableColors, ACCENT_COLORS } from '../contexts/SettingsContext';
-import { useLanguage } from '../contexts/LanguageContext';
+// Fix: Add .tsx extension to module import
+import { useSettings, availableColors, ACCENT_COLORS } from '../contexts/SettingsContext.tsx';
+// Fix: Add .tsx extension to module import
+import { useLanguage } from '../contexts/LanguageContext.tsx';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -9,7 +12,8 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { theme, toggleTheme, accentColor, setAccentColor } = useSettings();
+  // Fix: Destructured `setTheme` instead of `toggleTheme` to match the provided context.
+  const { theme, setTheme, accentColor, setAccentColor } = useSettings();
   const { language, setLanguage, t } = useLanguage();
 
   if (!isOpen) return null;
@@ -31,7 +35,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
             {/* Theme Toggle */}
             <div className="flex items-center justify-between">
               <span className="text-gray-700 dark:text-gray-300">{t('darkMode')}</span>
-              <button onClick={toggleTheme} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${theme === 'dark' ? 'bg-accent-600' : 'bg-gray-200'}`}>
+              {/* Fix: Updated onClick to use `setTheme` for toggling between 'dark' and 'light' modes. */}
+              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${theme === 'dark' ? 'bg-accent-600' : 'bg-gray-200'}`}>
                 <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useAuth } from '../contexts/AuthContext';
+// Fix: Add .tsx extension to module import
+import { useLanguage } from '../contexts/LanguageContext.tsx';
+// Fix: Add .tsx extension to module import
+import { useAuth } from '../contexts/AuthContext.tsx';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -103,7 +105,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         <div className="p-6">
           <div className="flex justify-end">
              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 -mt-2 -mr-2 p-1 rounded-full">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24/24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>

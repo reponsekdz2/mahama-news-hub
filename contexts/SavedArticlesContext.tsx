@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Article } from '../types';
-import { useAuth } from './AuthContext';
+// Fix: Add .ts extension to module import
+import { Article } from '../types.ts';
+// Fix: Add .tsx extension to module import
+import { useAuth } from './AuthContext.tsx';
 
 interface SavedArticlesContextType {
   savedArticles: Article[];
@@ -17,7 +19,7 @@ const getStoredArticles = (): Article[] => {
         const item = window.localStorage.getItem('savedArticles');
         return item ? JSON.parse(item) : [];
     } catch (error) {
-        console.warn('Error reading saved articles from localStorage:', String(error));
+        console.warn('Error reading saved articles from localStorage:', error);
         return [];
     }
 };
@@ -38,7 +40,12 @@ export const SavedArticlesProvider: React.FC<{ children: ReactNode }> = ({ child
   }, [isLoggedIn]);
 
   const addArticle = (article: Article) => {
-    setSavedArticles(prev => [...prev, article]);
+    setSavedArticles(prev => {
+        if (prev.some(a => a.id === article.id)) {
+            return prev;
+        }
+        return [...prev, article];
+    });
   };
 
   const removeArticle = (articleId: string) => {

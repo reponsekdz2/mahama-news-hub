@@ -1,10 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import { SettingsProvider } from './contexts/SettingsContext';
-import { LanguageProvider } from './contexts/LanguageContext';
-import { AuthProvider } from './contexts/AuthContext';
-import { SavedArticlesProvider } from './contexts/SavedArticlesContext';
+// Fix: Add .tsx extension to module imports
+import App from './App.tsx';
+// Fix: Add .tsx extension to module imports
+import { SettingsProvider } from './contexts/SettingsContext.tsx';
+// Fix: Add .tsx extension to module imports
+import { LanguageProvider } from './contexts/LanguageContext.tsx';
+// Fix: Add .tsx extension to module imports
+import { AuthProvider } from './contexts/AuthContext.tsx';
+// Fix: Add .tsx extension to module imports
+import { SavedArticlesProvider } from './contexts/SavedArticlesContext.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -14,14 +19,14 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <SettingsProvider>
-      <LanguageProvider>
-        <AuthProvider>
+    <AuthProvider>
+      <SettingsProvider>
+        <LanguageProvider>
           <SavedArticlesProvider>
             <App />
           </SavedArticlesProvider>
-        </AuthProvider>
-      </LanguageProvider>
-    </SettingsProvider>
+        </LanguageProvider>
+      </SettingsProvider>
+    </AuthProvider>
   </React.StrictMode>
 );

@@ -1,133 +1,217 @@
-import React, { useState, useEffect } from 'react';
-import { Article } from '../types';
-import { CATEGORIES } from '../contexts/LanguageContext';
+import React, { useState, useEffect, useRef } from 'react';
+import ReactQuill from 'react-quill';
+import { Article } from '../types.ts';
+import { useLanguage, CATEGORIES } from '../contexts/LanguageContext.tsx';
+import { improveWriting, generateImageIdea } from '../services/aiService.ts';
+import { useAuth } from '../contexts/AuthContext.tsx';
 
 interface ArticleFormProps {
-    article: Article | null;
-    onSave: (articleData: Omit<Article, 'id'> | Article) => void;
-    onClose: () => void;
+  articleToEdit?: Partial<Article> | null;
+  onFormSubmit: (formData: FormData) => void;
+  onCancel: () => void;
+  isLoading: boolean;
 }
 
-const ArticleForm: React.FC<ArticleFormProps> = ({ article, onSave, onClose }) => {
-    const [formData, setFormData] = useState({
-        title: '',
-        summary: '',
-        category: CATEGORIES[0],
-        imageUrl: '',
-        sourceTitle: '',
-        sourceUri: ''
-    });
+const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, onCancel, isLoading }) => {
+  const { t } = useLanguage();
+  const { user } = useAuth();
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [category, setCategory] = useState(CATEGORIES.find(c => c !== 'Top Stories') || 'World');
+  const [image, setImage] = useState<File | null>(null);
+  const [video, setVideo] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  
+  const [isImproving, setIsImproving] = useState(false);
+  const [isGeneratingIdea, setIsGeneratingIdea] = useState(false);
+  const [imageIdea, setImageIdea] = useState('');
+  const [aiError, setAiError] = useState('');
 
-    useEffect(() => {
-        if (article) {
-            setFormData({
-                title: article.title,
-                summary: article.summary,
-                category: article.category,
-                imageUrl: article.imageUrl,
-                sourceTitle: article.sources?.[0]?.title || '',
-                sourceUri: article.sources?.[0]?.uri || ''
-            });
-        }
-    }, [article]);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
+  useEffect(() => {
+    if (articleToEdit) {
+      setTitle(articleToEdit.title || '');
+      setContent(articleToEdit.content || '');
+      setCategory(articleToEdit.category || CATEGORIES[1]);
+      setImagePreview(articleToEdit.imageUrl || null);
+      setVideoPreview(articleToEdit.videoUrl || null);
+    } else {
+        setTitle('');
+        setContent('');
+        setCategory(CATEGORIES[1]);
+        setImage(null);
+        setVideo(null);
+        setImagePreview(null);
+        setVideoPreview(null);
+    }
+  }, [articleToEdit]);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const { title, summary, category, imageUrl, sourceTitle, sourceUri } = formData;
-        
-        const sources = sourceUri ? [{ title: sourceTitle || new URL(sourceUri).hostname, uri: sourceUri }] : [];
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImage(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
 
-        const articleData = { title, summary, category, imageUrl, sources };
-        
-        if (article?.id) {
-            onSave({ ...articleData, id: article.id });
-        } else {
-            onSave(articleData);
-        }
-    };
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setVideo(file);
+      setVideoPreview(URL.createObjectURL(file));
+    }
+  };
+  
+  const handleImproveWriting = async () => {
+    if(!user?.token || !content) return;
+    setIsImproving(true);
+    setAiError('');
+    try {
+        const improved = await improveWriting(content, user.token);
+        setContent(improved);
+    } catch (err) {
+        setAiError(err instanceof Error ? err.message : 'Failed to improve text.');
+    } finally {
+        setIsImproving(false);
+    }
+  }
+  
+  const handleGenerateImageIdea = async () => {
+      if(!user?.token || !title) return;
+      setIsGeneratingIdea(true);
+      setAiError('');
+      try {
+          const idea = await generateImageIdea(title, user.token);
+          setImageIdea(idea);
+      } catch(err) {
+          setAiError(err instanceof Error ? err.message : 'Failed to generate idea.');
+      } finally {
+          setIsGeneratingIdea(false);
+      }
+  }
 
-    const formCategories = CATEGORIES.filter(c => c !== 'topStories');
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    formData.append('category', category);
+    if (image) {
+      formData.append('image', image);
+    }
+    if (video) {
+      formData.append('video', video);
+    }
+    onFormSubmit(formData);
+  };
 
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <form onSubmit={handleSubmit}>
-                    <div className="p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                                {article ? 'Edit Article' : 'Create New Article'}
-                            </h2>
-                            <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        </div>
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {aiError && <p className="text-red-500 text-sm mb-4">{aiError}</p>}
+      <div>
+        <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Title
+        </label>
+        <input
+          id="title"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+          className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500"
+        />
+      </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
-                                <input type="text" name="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full input-style" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Summary</label>
-                                <textarea name="summary" value={formData.summary} onChange={handleChange} required rows={4} className="mt-1 block w-full input-style"></textarea>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
-                                    <select name="category" value={formData.category} onChange={handleChange} className="mt-1 block w-full input-style">
-                                        {formCategories.map(cat => (
-                                            <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Image URL</label>
-                                    <input type="text" name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="Optional, auto-generated if blank" className="mt-1 block w-full input-style" />
-                                </div>
-                            </div>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Source Title</label>
-                                    <input type="text" name="sourceTitle" value={formData.sourceTitle} onChange={handleChange} placeholder="e.g., Tech Chronicle" className="mt-1 block w-full input-style" />
-                                </div>
-                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Source URL</label>
-                                    <input type="text" name="sourceUri" value={formData.sourceUri} onChange={handleChange} placeholder="https://example.com/story" className="mt-1 block w-full input-style" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 text-right space-x-2">
-                         <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">Cancel</button>
-                         <button type="submit" className="px-4 py-2 bg-accent-600 text-white rounded-md hover:bg-accent-700">Save Article</button>
-                    </div>
-                </form>
-            </div>
-             <style>{`
-                .input-style {
-                    padding: 0.5rem 0.75rem;
-                    border: 1px solid;
-                    border-radius: 0.375rem;
-                    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-                    outline: none;
-                }
-                .input-style:focus {
-                    --tw-ring-color: rgb(var(--accent-color-500));
-                    border-color: rgb(var(--accent-color-500));
-                    box-shadow: 0 0 0 2px var(--tw-ring-color);
-                }
-                .dark .input-style {
-                    background-color: #374151; /* gray-700 */
-                    border-color: #4b5563; /* gray-600 */
-                }
-             `}</style>
+      <div>
+        <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Category
+        </label>
+        <select
+          id="category"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500"
+        >
+          {CATEGORIES.filter(c => c !== 'Top Stories').map(cat => (
+            <option key={cat} value={cat}>{t(cat as any)}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <div className="flex justify-between items-center">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Content
+            </label>
+            <button type="button" onClick={handleImproveWriting} disabled={isImproving || !content} className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline disabled:opacity-50 disabled:no-underline">
+                {isImproving ? t('generating') : t('improveWriting')}
+            </button>
         </div>
-    );
+        <ReactQuill theme="snow" value={content} onChange={setContent} className="mt-1 bg-white dark:bg-gray-700 dark:text-white" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <div className="flex justify-between items-center">
+                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Cover Image
+                </label>
+                 <button type="button" onClick={handleGenerateImageIdea} disabled={isGeneratingIdea || !title} className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline disabled:opacity-50 disabled:no-underline">
+                    {isGeneratingIdea ? t('generating') : t('generateImageIdea')}
+                </button>
+            </div>
+            {imageIdea && <textarea readOnly value={imageIdea} className="mt-2 w-full text-sm p-2 rounded-md bg-gray-100 dark:bg-gray-900 border dark:border-gray-600" rows={3}/>}
+            <div className="mt-2 flex items-center space-x-4">
+              {imagePreview && <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-md" />}
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                {imagePreview ? 'Change Image' : 'Upload Image'}
+              </button>
+              <input type="file" accept="image/*" ref={imageInputRef} onChange={handleImageChange} className="hidden" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Cover Video (Optional)
+            </label>
+             <div className="mt-1 flex items-center space-x-4">
+              {videoPreview && <video src={videoPreview} className="w-20 h-20 object-cover rounded-md" />}
+              <button
+                type="button"
+                onClick={() => videoInputRef.current?.click()}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                {videoPreview ? 'Change Video' : 'Upload Video'}
+              </button>
+              <input type="file" accept="video/*" ref={videoInputRef} onChange={handleVideoChange} className="hidden" />
+            </div>
+          </div>
+      </div>
+
+      <div className="flex justify-end space-x-4 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="px-4 py-2 bg-accent-600 text-white rounded-md text-sm font-medium hover:bg-accent-700 disabled:opacity-50 flex items-center"
+        >
+          {isLoading ? 'Saving...' : (articleToEdit?.id ? 'Update Article' : 'Create Article')}
+        </button>
+      </div>
+    </form>
+  );
 };
 
 export default ArticleForm;

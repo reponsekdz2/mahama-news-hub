@@ -1,25 +1,38 @@
 
-export interface Source {
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'user' | 'admin';
+}
+
+export interface ArticleSource {
   title: string;
   uri: string;
 }
 
 export interface Article {
-  id: string; // Added for unique identification
+  id: string;
   title: string;
-  summary: string;
+  content: string;
   category: string;
   imageUrl: string;
-  sources: Source[];
+  videoUrl?: string | null;
+  authorId?: string;
+  authorName: string;
+  createdAt?: string;
+  updatedAt?: string;
+  viewCount: number;
+  likeCount: number;
+  isLiked: boolean;
+  sources?: ArticleSource[];
 }
 
-export interface GroundingChunk {
-  web: Source;
-}
-
-export interface User {
-  name: string;
-  email: string;
-  role?: 'admin' | 'user';
-  token?: string;
+export interface Comment {
+  id: string;
+  articleId: string;
+  userId: string;
+  userName: string;
+  content: string;
+  createdAt: string;
 }

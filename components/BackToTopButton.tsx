@@ -1,6 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
+// Fix: Add .tsx extension to module import
+import { useLanguage } from '../contexts/LanguageContext.tsx';
 
 const BackToTopButton: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);

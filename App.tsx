@@ -1,62 +1,66 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header.tsx';
 import MainArticle from './components/MainArticle.tsx';
 import ArticleCard from './components/ArticleCard.tsx';
-import Footer from './components/Footer.tsx';
 import Spinner from './components/Spinner.tsx';
-import { MainArticleSkeleton, ArticleCardSkeleton } from './components/Skeletons.tsx';
-import BackToTopButton from './components/BackToTopButton.tsx';
-import AuthModal from './components/AuthModal.tsx';
+import { Article } from './types.ts';
+import { fetchArticles, fetchRandomArticle } from './services/articleService.ts';
+import { useAuth } from './contexts/AuthContext.tsx';
+import { useLanguage, CATEGORIES } from './contexts/LanguageContext.tsx';
+import { useSettings } from './contexts/SettingsContext.tsx';
+import { useLibrary } from './contexts/LibraryContext.tsx';
+import Footer from './components/Footer.tsx';
 import ArticleModal from './components/ArticleModal.tsx';
+import AuthModal from './components/AuthModal.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import SettingsPage from './components/SettingsPage.tsx';
 import LibraryPage from './components/LibraryPage.tsx';
-import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
 import ErrorDisplay from './components/ErrorDisplay.tsx';
+import BackToTopButton from './components/BackToTopButton.tsx';
 import SearchOverlay from './components/SearchOverlay.tsx';
+import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
 import OfflineBanner from './components/OfflineBanner.tsx';
+import { MainArticleSkeleton, ArticleCardSkeleton } from './components/Skeletons.tsx';
+import SubscriptionModal from './components/SubscriptionModal.tsx';
 import SubscriptionPlanModal from './components/SubscriptionPlanModal.tsx';
 import Aside from './components/Aside.tsx';
-import { useAuth } from './contexts/AuthContext.tsx';
-import { useLanguage } from './contexts/LanguageContext.tsx';
-import { useLibrary } from './contexts/LibraryContext.tsx';
-import { useSettings } from './contexts/SettingsContext.tsx';
-import { Article, Advertisement } from './types.ts';
-import { fetchArticles, getArticleById, fetchRandomArticle } from './services/articleService.ts';
-import { fetchReadingHistory } from './services/userService.ts';
+import TrendingArticles from './components/TrendingArticles.tsx';
+import MaintenancePage from './components/MaintenancePage.tsx';
 
-type View = 'news' | 'admin' | 'settings' | 'library';
-export type SearchFilters = {
-    dateRange: 'all' | '24h' | '7d' | '30d';
-    sortBy: 'newest' | 'oldest' | 'views' | 'likes';
+
+type View = 'home' | 'article' | 'admin' | 'settings' | 'library' | 'searchResults';
+
+export interface SearchFilters {
+  dateRange: 'all' | '24h' | '7d' | '30d';
+  sortBy: 'newest' | 'oldest' | 'views' | 'likes';
 }
 
 const App: React.FC = () => {
-  const [feedItems, setFeedItems] = useState<Article[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState('Top Stories');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<View>('home');
+  const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<string>(CATEGORIES[0]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [view, setView] = useState<View>('news');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({ dateRange: 'all', sortBy: 'newest' });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  
-  const { user, isLoggedIn, hasActiveSubscription } = useAuth();
-  const { t, loadUserLanguage } = useLanguage();
-  const { fetchLibrary, collections } = useLibrary();
-  const { loadUserSettings } = useSettings();
-  
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false); // Can be fetched from settings
+
+  const { user, isLoggedIn, login, hasActiveSubscription } = useAuth();
+  const { loadUserSettings, isPersistenceLoading } = useSettings();
+  const { loadUserLanguage } = useLanguage();
+  const { fetchLibrary } = useLibrary();
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -65,194 +69,185 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (user?.token) {
-      loadUserLanguage(user.token);
       loadUserSettings(user.token);
+      loadUserLanguage(user.token);
       fetchLibrary();
     }
-  }, [user?.token, loadUserLanguage, loadUserSettings, fetchLibrary]);
-
-  const loadNews = useCallback(async () => {
-    if (['myLibrary'].includes(selectedTopic)) {
-      setView('library');
-      return;
-    }
-    
-    setLoading(true);
+  }, [user, login, loadUserSettings, loadUserLanguage, fetchLibrary]);
+  
+  const loadArticles = useCallback(async (topic: string, filters: SearchFilters, query?: string) => {
+    setIsLoading(true);
     setError(null);
-    
-    if (!isOnline) {
-        setError("You are currently offline. Please check your connection or browse your saved articles.");
-        setLoading(false);
-        setFeedItems([]);
-        return;
-    }
-    
     try {
-      let fetchedArticles: Article[] = [];
-
-      if (selectedTopic === 'readingHistory' && user?.token) {
-          fetchedArticles = await fetchReadingHistory(user.token);
-      } else {
-          const topicToFetch = searchQuery || selectedTopic;
-          fetchedArticles = await fetchArticles(topicToFetch, searchFilters, user?.token);
-      }
-
-      setFeedItems(fetchedArticles);
-
+      const fetchedArticles = await fetchArticles(query || topic, filters, user?.token);
+      setArticles(fetchedArticles);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load content.');
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setArticles([]);
     } finally {
-      setLoading(false);
-      if (view === 'news') {
-        window.scrollTo(0, 0);
-      }
+      setIsLoading(false);
     }
-  }, [selectedTopic, searchQuery, user?.token, view, searchFilters, isOnline]);
+  }, [user?.token]);
 
   useEffect(() => {
-    if(view === 'news') {
-      loadNews();
+    if (view === 'home') {
+      loadArticles(selectedTopic, searchFilters);
     }
-  }, [view, loadNews]);
+  }, [selectedTopic, view, loadArticles, searchFilters]);
 
-  const handleTopicChange = (topic: string) => {
-    setSearchQuery('');
-    setSelectedTopic(topic);
-    if (topic === 'myLibrary') {
+  const handleTopicChange = (topicKey: string) => {
+    if (topicKey === 'myLibrary') {
         setView('library');
-    } else {
-        setView('news');
+        return;
     }
-  };
-
-  const handleSearch = ({ query, filters }: { query: string; filters: SearchFilters }) => {
-    setIsSearchOpen(false);
-    setView('news');
-    setSelectedTopic(query); 
-    setSearchQuery(query);
-    setSearchFilters(filters);
+     if (topicKey === 'readingHistory') {
+        setSelectedTopic(topicKey);
+        setView('home');
+        return;
+    }
+    setSelectedTopic(topicKey);
+    setView('home');
+    window.scrollTo(0, 0);
   };
   
   const handleReadMore = (article: Article) => {
     if (article.isPremium && !hasActiveSubscription) {
-        setIsSubscriptionModalOpen(true);
+      setIsSubscriptionModalOpen(true);
     } else {
-        setSelectedArticle(article);
-    }
-  };
-  
-  const handleNavigation = (targetView: 'news' | 'admin' | 'settings' | 'library') => {
-      setView(targetView);
-      if (targetView === 'admin') setSelectedTopic('Admin Panel');
-      if (targetView === 'settings') setSelectedTopic('Settings');
-      if (targetView === 'library') setSelectedTopic('myLibrary');
-      if (targetView === 'news') setSelectedTopic('Top Stories');
-  }
-
-  const handleSelectTrendingArticle = async (articleId: string) => {
-    try {
-      const fullArticle = await getArticleById(articleId, user?.token);
-      handleReadMore(fullArticle);
+      setSelectedArticle(article);
+      setView('article');
       window.scrollTo(0, 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load article details.');
     }
   };
 
-  const handleSurpriseMe = async () => {
-    try {
-        const article = await fetchRandomArticle(user?.token);
-        if (article) {
-            setView('news'); // Ensure we are on the news view
-            handleReadMore(article);
-        }
-    } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not find a surprising article for you.');
-    }
-  };
-
-  const mainArticle = feedItems.length > 0 ? feedItems[0] : null;
-  const otherItems = mainArticle ? feedItems.slice(1) : feedItems;
-  
-  const renderView = () => {
-      switch(view) {
-          case 'admin':
-            return <AdminPanel onNavigateBack={() => handleNavigation('news')} />;
-          case 'settings':
-            return <SettingsPage onNavigateBack={() => handleNavigation('news')} />;
-          case 'library':
-            return <LibraryPage onNavigateBack={() => handleNavigation('news')} onReadArticle={handleReadMore} />;
-          case 'news':
-          default:
-             return (
-                 <div className="grid grid-cols-1 lg:grid-cols-4 lg:gap-8">
-                    <div className="lg:col-span-3">
-                        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white my-6 md:my-8 border-b-4 border-accent-500 pb-2">
-                        {searchQuery ? `${t('searchResultsFor')} "${searchQuery}"` : t(selectedTopic as any) || selectedTopic}
-                        </h1>
-
-                        <AdvancedSearchBar filters={searchFilters} onFiltersChange={setSearchFilters} />
-
-                        {loading ? (
-                        <>
-                            <MainArticleSkeleton />
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                            {[...Array(6)].map((_, i) => <ArticleCardSkeleton key={i} />)}
-                            </div>
-                        </>
-                        ) : error ? (
-                         <ErrorDisplay message={error} onRetry={loadNews} />
-                        ) : (
-                        <>
-                            {mainArticle ? (
-                            <MainArticle article={mainArticle} onReadMore={() => handleReadMore(mainArticle)} />
-                            ) : otherItems.length === 0 ? (
-                            <p className="text-center py-12 text-gray-500 dark:text-gray-400">{t('noArticlesFound')}</p>
-                            ) : null}
-
-                            {otherItems.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mt-8">
-                                {otherItems.map(item => 
-                                    <ArticleCard key={item.id} article={item} onReadMore={() => handleReadMore(item)} />
-                                )}
-                            </div>
-                            )}
-                        </>
-                        )}
-                    </div>
-                    <aside className="hidden lg:block lg:col-span-1 pt-8">
-                        <div className="sticky top-20">
-                           <Aside onSubscribeClick={() => setIsSubscriptionModalOpen(true)} />
-                        </div>
-                    </aside>
-                 </div>
-             )
+  const handleSelectTrending = async (articleId: string) => {
+      try {
+          const article = await getArticleById(articleId, user?.token);
+          handleReadMore(article);
+      } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not load the article.");
       }
+  };
+
+  const handleNavigate = (newView: 'admin' | 'settings') => {
+    setView(newView);
+    window.scrollTo(0, 0);
+  };
+  
+  const handleSearch = (params: { query: string, filters: SearchFilters }) => {
+    setSearchQuery(params.query);
+    setSearchFilters(params.filters);
+    setView('searchResults');
+    loadArticles('Search Results', params.filters, params.query);
+    setIsSearchOverlayOpen(false);
+    window.scrollTo(0, 0);
+  };
+  
+  const handleSurpriseMe = async () => {
+    setIsLoading(true);
+    try {
+      const article = await fetchRandomArticle(user?.token);
+      if(article) {
+        handleReadMore(article);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not find an article for you.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBackToNews = () => {
+    setView('home');
+    setSelectedArticle(null);
+  };
+  
+  if (isMaintenanceMode) {
+    return <MaintenancePage />;
   }
+
+  const renderContent = () => {
+    if (isPersistenceLoading) {
+      return <div className="min-h-screen"><Spinner /></div>;
+    }
+    
+    if (error) {
+      return <ErrorDisplay message={error} onRetry={() => loadArticles(selectedTopic, searchFilters, view === 'searchResults' ? searchQuery : undefined)} />;
+    }
+
+    switch (view) {
+      case 'article':
+        return selectedArticle ? <ArticleModal article={selectedArticle} onClose={handleBackToNews} onReadAnother={handleReadMore} /> : <Spinner />;
+      case 'admin':
+        return <AdminPanel onNavigateBack={handleBackToNews} />;
+      case 'settings':
+        return <SettingsPage onNavigateBack={handleBackToNews} />;
+      case 'library':
+        return <LibraryPage onNavigateBack={handleBackToNews} onReadArticle={handleReadMore} />;
+      case 'home':
+      case 'searchResults':
+        const mainArticle = articles[0];
+        const otherArticles = articles.slice(1);
+        const title = view === 'searchResults' ? `Results for "${searchQuery}"` : selectedTopic;
+
+        return (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="lg:col-span-9">
+                    <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-4 capitalize">{title}</h1>
+                    {view === 'searchResults' && <AdvancedSearchBar filters={searchFilters} onFiltersChange={setSearchFilters} />}
+                    {isLoading ? (
+                    <>
+                        <MainArticleSkeleton />
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+                        {[...Array(6)].map((_, i) => <ArticleCardSkeleton key={i} />)}
+                        </div>
+                    </>
+                    ) : articles.length > 0 ? (
+                    <>
+                        {mainArticle && <MainArticle article={mainArticle} onReadMore={() => handleReadMore(mainArticle)} />}
+                        {otherArticles.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                            {otherArticles.map(article => (
+                            <ArticleCard key={article.id} article={article} onReadMore={() => handleReadMore(article)} />
+                            ))}
+                        </div>
+                        )}
+                    </>
+                    ) : (
+                    <p className="text-center py-12 text-gray-500 dark:text-gray-400">No articles found for this topic.</p>
+                    )}
+                </div>
+                 <aside className="lg:col-span-3 space-y-8">
+                    <TrendingArticles onArticleSelect={handleSelectTrending} />
+                    <Aside onSubscribeClick={() => setIsSubscriptionModalOpen(true)} />
+                </aside>
+            </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="bg-gray-100 dark:bg-gray-900 min-h-screen font-sans text-gray-800 dark:text-gray-200 flex flex-col">
+    <div className="bg-gray-100 dark:bg-gray-900 min-h-screen font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300">
       {!isOnline && <OfflineBanner />}
       <Header
         selectedTopic={selectedTopic}
         onTopicChange={handleTopicChange}
-        onSearch={() => setIsSearchOpen(true)}
+        onSearch={() => setIsSearchOverlayOpen(true)}
         onSurpriseMe={handleSurpriseMe}
         onOpenLogin={() => setIsAuthModalOpen(true)}
-        onNavigate={(target) => handleNavigation(target as 'admin' | 'settings')}
+        onNavigate={handleNavigate}
       />
-
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 flex-grow">
-        {renderView()}
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {renderContent()}
       </main>
-
-      <Footer onTopicChange={handleTopicChange} onArticleSelect={handleSelectTrendingArticle} />
+      <Footer />
       <BackToTopButton />
-
+      
       {isAuthModalOpen && <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />}
+      {isSearchOverlayOpen && <SearchOverlay onClose={() => setIsSearchOverlayOpen(false)} onSearch={handleSearch} />}
       {isSubscriptionModalOpen && <SubscriptionPlanModal onClose={() => setIsSubscriptionModalOpen(false)} />}
-      {selectedArticle && <ArticleModal article={selectedArticle} onClose={() => setSelectedArticle(null)} />}
-      {isSearchOpen && <SearchOverlay onClose={() => setIsSearchOpen(false)} onSearch={handleSearch} />}
     </div>
   );
 };

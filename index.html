@@ -1,106 +1,12 @@
-<!DOCTYPE html>
-<html lang="en" class="scroll-smooth dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="A personalized news hub. Get the latest articles, customize your theme, and share stories with ease.">
-  <title>Mahama News TV</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Quill Rich Text Editor Stylesheet -->
-  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
-  <!-- Chart.js for Analytics -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <style>
-    /* Custom CSS variables for dynamic theming */
-    :root {
-      /* Default accent color (Red) */
-      --accent-color-50: 254 226 226;
-      --accent-color-100: 254 202 202;
-      --accent-color-200: 254 178 178;
-      --accent-color-300: 252 165 165;
-      --accent-color-400: 248 113 113;
-      --accent-color-500: 239 68 68;
-      --accent-color-600: 220 38 38;
-      --accent-color-700: 185 28 28;
-      --accent-color-800: 153 27 27;
-      --accent-color-900: 127 29 29;
-      
-      /* Accessibility variables */
-      --font-size: 16px;
-      --line-height: 1.6;
-    }
-
-    body {
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        font-size: var(--font-size);
-        line-height: var(--line-height);
-    }
-    
-    /* Fade-in animation for loaded content */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in {
-        animation: fadeIn 0.5s ease-out forwards;
-    }
-
-    /* Styles for rendered Quill content */
-    .quill-content h1 { font-size: 1.875em; font-weight: bold; margin-bottom: 0.5em; }
-    .quill-content h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; }
-    .quill-content h3 { font-size: 1.25em; font-weight: bold; margin-bottom: 0.5em; }
-    .quill-content ul, .quill-content ol { padding-left: 1.5rem; margin-bottom: 1rem; }
-    .quill-content li { margin-bottom: 0.25rem; }
-    .quill-content a { color: rgb(var(--accent-color-500)); text-decoration: underline; }
-    .quill-content p { margin-bottom: 1rem; }
-
-  </style>
-  <script>
-    // Tailwind config to extend colors with our CSS variables
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            accent: {
-              50: 'rgb(var(--accent-color-50) / <alpha-value>)',
-              100: 'rgb(var(--accent-color-100) / <alpha-value>)',
-              200: 'rgb(var(--accent-color-200) / <alpha-value>)',
-              300: 'rgb(var(--accent-color-300) / <alpha-value>)',
-              400: 'rgb(var(--accent-color-400) / <alpha-value>)',
-              500: 'rgb(var(--accent-color-500) / <alpha-value>)',
-              600: 'rgb(var(--accent-color-600) / <alpha-value>)',
-              700: 'rgb(var(--accent-color-700) / <alpha-value>)',
-              800: 'rgb(var(--accent-color-800) / <alpha-value>)',
-              900: 'rgb(var(--accent-color-900) / <alpha-value>)',
-            },
-          },
-        },
-      },
-    }
-  </script>
-</head>
-<body class="bg-gray-100 dark:bg-gray-900">
-  <!-- This is the root element where the React app will be mounted. -->
-  <div id="root"></div>
-
-  <!-- Import Map -->
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "react-quill": "https://esm.sh/react-quill@2.0.0",
-    "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "chart.js": "https://esm.sh/chart.js@4.4.2",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.22.0"
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "chart.js": "https://aistudiocdn.com/chart.js@^4.5.0",
+    "react-quill": "https://aistudiocdn.com/react-quill@^2.0.0"
   }
 }
 </script>
-
-  <!-- Main application script -->
-  <script type="module" src="/index.tsx"></script>
-</body>
-</html>
+full contents of index.html

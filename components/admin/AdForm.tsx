@@ -1,105 +1,132 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Advertisement } from '../../types.ts';
+import { createAd, updateAd } from '../../services/adService.ts';
+import { useAuth } from '../../contexts/AuthContext.tsx';
 
 interface AdFormProps {
-  adToEdit?: Partial<Advertisement> | null;
-  onFormSubmit: (formData: FormData) => void;
-  onClose: () => void;
-  isLoading: boolean;
+    adToEdit?: Advertisement | null;
+    onFormSubmit: () => void;
+    onCancel: () => void;
 }
 
-const AdForm: React.FC<AdFormProps> = ({ adToEdit, onFormSubmit, onClose, isLoading }) => {
-  const [title, setTitle] = useState('');
-  const [linkUrl, setLinkUrl] = useState('');
-  const [status, setStatus] = useState<'active' | 'inactive'>('active');
-  const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+const AdForm: React.FC<AdFormProps> = ({ adToEdit, onFormSubmit, onCancel }) => {
+    const { user } = useAuth();
+    const [formData, setFormData] = useState({
+        title: '',
+        linkUrl: '',
+        placement: 'sidebar',
+        status: 'active',
+    });
+    const [image, setImage] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+    const imageInputRef = useRef<HTMLInputElement>(null);
 
-  const imageInputRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        if(adToEdit) {
+            setFormData({
+                title: adToEdit.title,
+                linkUrl: adToEdit.linkUrl,
+                placement: adToEdit.placement,
+                status: adToEdit.status,
+            });
+            setImagePreview(adToEdit.imageUrl);
+        }
+    }, [adToEdit]);
 
-  useEffect(() => {
-    if (adToEdit) {
-      setTitle(adToEdit.title || '');
-      setLinkUrl(adToEdit.linkUrl || '');
-      setStatus(adToEdit.status || 'active');
-      setImagePreview(adToEdit.imageUrl || null);
-    }
-  }, [adToEdit]);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({...formData, [e.target.name]: e.target.value });
+    };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImage(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setImage(file);
+            setImagePreview(URL.createObjectURL(file));
+        }
+    };
+    
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if(!user?.token) return;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('linkUrl', linkUrl);
-    formData.append('status', status);
-    if (image) {
-      formData.append('image', image);
-    } else if (adToEdit?.imageUrl) {
-      formData.append('imageUrl', adToEdit.imageUrl);
-    }
-    onFormSubmit(formData);
-  };
+        const formPayload = new FormData();
+        formPayload.append('title', formData.title);
+        formPayload.append('linkUrl', formData.linkUrl);
+        formPayload.append('placement', formData.placement);
+        formPayload.append('status', formData.status);
+        if (image) {
+            formPayload.append('image', image);
+        } else if (adToEdit?.imageUrl) {
+            formPayload.append('imageUrl', adToEdit.imageUrl);
+        }
+        
+        setIsLoading(true);
+        setError('');
+        try {
+            if (adToEdit?.id) {
+                await updateAd(adToEdit.id, formPayload, user.token);
+            } else {
+                await createAd(formPayload, user.token);
+            }
+            onFormSubmit();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to save ad.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4" onClick={onClose}>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
-            <form onSubmit={handleSubmit} className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{adToEdit ? 'Edit Ad' : 'Create New Ad'}</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Left Column for text inputs */}
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
-                            <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Link URL</label>
-                            <input type="url" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} required placeholder="https://example.com" className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                            <select value={status} onChange={e => setStatus(e.target.value as any)} className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
-                    </div>
-                    {/* Right Column for image upload */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ad Image</label>
-                        <div className="mt-1 flex justify-center items-center w-full h-48 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md cursor-pointer" onClick={() => imageInputRef.current?.click()}>
-                           {imagePreview ? (
-                                <img src={imagePreview} alt="Preview" className="h-full w-full object-contain rounded-md" />
-                           ) : (
-                               <div className="text-center">
-                                   <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                                   <p className="text-xs text-gray-500 dark:text-gray-400">Click to upload image</p>
-                               </div>
-                           )}
-                        </div>
-                        <input type="file" accept="image/*" ref={imageInputRef} onChange={handleImageChange} className="hidden" />
-                    </div>
-                </div>
-
-                <div className="flex justify-end space-x-4 pt-6 mt-6 border-t dark:border-gray-700">
-                    <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
-                    <button type="submit" disabled={isLoading} className="px-4 py-2 bg-accent-600 text-white rounded-md text-sm font-medium hover:bg-accent-700 disabled:opacity-50">
-                    {isLoading ? 'Saving...' : (adToEdit ? 'Update Ad' : 'Create Ad')}
+    return (
+        <form onSubmit={handleSubmit} className="space-y-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+            <h2 className="text-xl font-bold">{adToEdit ? 'Edit' : 'Create'} Ad</h2>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            
+            <div>
+                <label className="block text-sm font-medium">Title</label>
+                <input type="text" name="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm" />
+            </div>
+            <div>
+                <label className="block text-sm font-medium">Link URL</label>
+                <input type="url" name="linkUrl" value={formData.linkUrl} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm" />
+            </div>
+            <div>
+                <label className="block text-sm font-medium">Image</label>
+                <div className="mt-2 flex items-center space-x-4">
+                    {imagePreview && <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-md" />}
+                    <button type="button" onClick={() => imageInputRef.current?.click()} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium">
+                        Upload Image
                     </button>
+                    <input type="file" accept="image/*" ref={imageInputRef} onChange={handleImageChange} className="hidden" />
                 </div>
-            </form>
-        </div>
-    </div>
-  );
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium">Placement</label>
+                    <select name="placement" value={formData.placement} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm">
+                        <option value="sidebar">Sidebar</option>
+                        <option value="in-feed">In-Feed</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium">Status</label>
+                    <select name="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm">
+                        <option value="active">Active</option>
+                        <option value="paused">Paused</option>
+                    </select>
+                </div>
+            </div>
+
+
+            <div className="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700">
+                <button type="button" onClick={onCancel} className="px-4 py-2 border rounded-md text-sm font-medium">Cancel</button>
+                <button type="submit" disabled={isLoading} className="px-4 py-2 bg-accent-600 text-white rounded-md text-sm font-medium hover:bg-accent-700 disabled:opacity-50">
+                    {isLoading ? 'Saving...' : 'Save Ad'}
+                </button>
+            </div>
+        </form>
+    );
 };
 
 export default AdForm;

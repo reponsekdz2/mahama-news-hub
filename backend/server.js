@@ -23,6 +23,8 @@ app.use('/api/gemini', require('./routes/geminiRoutes'));
 app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/ads', require('./routes/adRoutes'));
 app.use('/api/collections', require('./routes/collectionRoutes'));
+app.use('/api/tags', require('./routes/tagRoutes'));
+app.use('/', require('./routes/utilityRoutes'));
 
 
 // Custom Error Handler

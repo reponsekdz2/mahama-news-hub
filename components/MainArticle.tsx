@@ -76,6 +76,15 @@ const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
               <div className="uppercase tracking-wide text-sm text-accent-500 font-semibold">{article.category}</div>
               <h1 className="block mt-1 text-2xl leading-tight font-bold text-black dark:text-white hover:underline">{article.title}</h1>
               <p className="mt-4 text-gray-600 dark:text-gray-300 text-base leading-relaxed">{snippet}</p>
+               {article.tags && article.tags.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {article.tags.map(tag => (
+                    <span key={tag} className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="mt-6">
               <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">

@@ -22,6 +22,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
   const [video, setVideo] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [status, setStatus] = useState<'draft' | 'published'>('published');
+  const [tags, setTags] = useState('');
   
   const [isImproving, setIsImproving] = useState(false);
   const [isGeneratingIdea, setIsGeneratingIdea] = useState(false);
@@ -38,6 +40,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       setCategory(articleToEdit.category || CATEGORIES[1]);
       setImagePreview(articleToEdit.imageUrl || null);
       setVideoPreview(articleToEdit.videoUrl || null);
+      setStatus(articleToEdit.status || 'published');
+      setTags((articleToEdit.tags || []).join(', '));
     } else {
         setTitle('');
         setContent('');
@@ -46,6 +50,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
         setVideo(null);
         setImagePreview(null);
         setVideoPreview(null);
+        setStatus('published');
+        setTags('');
     }
   }, [articleToEdit]);
 
@@ -99,6 +105,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
     formData.append('title', title);
     formData.append('content', content);
     formData.append('category', category);
+    formData.append('status', status);
+    formData.append('tags', tags);
     if (image) {
       formData.append('image', image);
     }
@@ -125,20 +133,49 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
         />
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Category
+            </label>
+            <select
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500"
+            >
+            {CATEGORIES.filter(c => c !== 'Top Stories').map(cat => (
+                <option key={cat} value={cat}>{t(cat as any)}</option>
+            ))}
+            </select>
+        </div>
+        <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Status
+            </label>
+            <select
+            id="status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as 'draft' | 'published')}
+            className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500"
+            >
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+            </select>
+        </div>
+      </div>
+
       <div>
-        <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Category
+        <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Tags (comma-separated)
         </label>
-        <select
-          id="category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
+        <input
+          id="tags"
+          type="text"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
           className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500"
-        >
-          {CATEGORIES.filter(c => c !== 'Top Stories').map(cat => (
-            <option key={cat} value={cat}>{t(cat as any)}</option>
-          ))}
-        </select>
+        />
       </div>
 
       <div>

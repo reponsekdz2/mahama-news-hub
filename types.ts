@@ -31,6 +31,8 @@ export interface Article {
   likeCount: number;
   isLiked?: boolean; // Optional as it might depend on the user context
   sources?: { title: string; uri: string }[];
+  tags?: string[];
+  status?: 'draft' | 'published';
 }
 
 export interface Advertisement {

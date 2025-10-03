@@ -52,6 +52,16 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) => {
         <div className="flex-grow overflow-y-auto p-6">
           <img src={article.imageUrl} alt={article.title} className="w-full h-64 object-cover rounded-lg mb-6" />
           <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300" dangerouslySetInnerHTML={{ __html: article.content }} />
+          
+          {article.tags && article.tags.length > 0 && (
+            <div className="mt-6 pt-4 border-t dark:border-gray-700 flex flex-wrap gap-2">
+              {article.tags.map(tag => (
+                <span key={tag} className="text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1 rounded-full">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
 
           {isLoggedIn && <AIToolsPanel article={article} />}
           

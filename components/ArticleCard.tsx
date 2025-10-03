@@ -78,6 +78,15 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
             <p className="text-xs text-accent-500 font-semibold uppercase">{article.category}</p>
             <h3 className="mt-1 font-bold text-lg text-gray-900 dark:text-white leading-tight truncate">{article.title}</h3>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{snippet}</p>
+             {article.tags && article.tags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {article.tags.map(tag => (
+                    <span key={tag} className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded-full">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
           </div>
 
           <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex-grow flex flex-col justify-end">

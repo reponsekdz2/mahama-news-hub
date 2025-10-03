@@ -62,6 +62,9 @@ const loginUser = async (req, res, next) => {
             const isMatch = await bcrypt.compare(password, user.password);
 
             if (isMatch) {
+                // Update last_login timestamp
+                await db.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
+
                 const token = generateToken(user.id);
                 res.json({
                     user: {

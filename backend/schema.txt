@@ -5,7 +5,9 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role ENUM('user', 'admin') DEFAULT 'user',
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    last_login TIMESTAMP NULL, -- Added last login tracking
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email (email) -- Added index for faster login
 );
 
 -- User Preferences Table
@@ -29,8 +31,28 @@ CREATE TABLE articles (
     image_url VARCHAR(255),
     video_url VARCHAR(255),
     author_id INT NOT NULL,
+    status ENUM('draft', 'published') DEFAULT 'published' NOT NULL, -- Added status
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_category (category), -- Added indexes for filtering
+    INDEX idx_author_id (author_id),
+    INDEX idx_status (status)
+);
+
+-- Tags Table (New)
+CREATE TABLE tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    INDEX idx_name (name)
+);
+
+-- Article Tags Join Table (New)
+CREATE TABLE article_tags (
+    article_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    PRIMARY KEY (article_id, tag_id),
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
 -- Article Views Table
@@ -41,7 +63,8 @@ CREATE TABLE article_views (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY user_article_view (user_id, article_id),
     FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_article_id (article_id) -- Added index
 );
 
 -- Article Likes Table
@@ -52,7 +75,8 @@ CREATE TABLE article_likes (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY user_article_like (user_id, article_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    INDEX idx_article_id (article_id) -- Added index
 );
 
 -- Comments Table
@@ -63,7 +87,9 @@ CREATE TABLE comments (
     user_id INT NOT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_article_id (article_id), -- Added indexes
+    INDEX idx_user_id (user_id)
 );
 
 -- Collections Table (for saved articles)

@@ -19,7 +19,15 @@ export const fetchArticlesWithAds = async (topic: string, token?: string): Promi
         headers['Authorization'] = `Bearer ${token}`;
     }
     const response = await fetch(`${API_URL}?topic=${encodeURIComponent(topic)}`, { headers });
-    return handleResponse(response);
+    const data = await handleResponse(response);
+    
+    // The backend sends tags as a comma-separated string, so we parse it here.
+    const articlesWithTags = data.articles.map((article: any) => ({
+        ...article,
+        tags: article.tags ? article.tags.split(',').map((t:string) => t.trim()) : []
+    }));
+
+    return { articles: articlesWithTags, ads: data.ads };
 };
 
 
@@ -29,7 +37,14 @@ export const getArticleById = async (id: string, token?: string): Promise<Articl
         headers['Authorization'] = `Bearer ${token}`;
     }
     const response = await fetch(`${API_URL}/${id}`, { headers });
-    return handleResponse(response);
+    const article = await handleResponse(response);
+    // Also parse tags for the single article view
+    if (article.tags && typeof article.tags === 'string') {
+        article.tags = article.tags.split(',').map((t:string) => t.trim());
+    } else {
+        article.tags = [];
+    }
+    return article;
 }
 
 export const createArticle = async (formData: FormData, token: string): Promise<Article> => {

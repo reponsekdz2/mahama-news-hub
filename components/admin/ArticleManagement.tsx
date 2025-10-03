@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Article } from '../../types.ts';
 import { fetchArticlesWithAds, createArticle, updateArticle, deleteArticle } from '../../services/articleService.ts';
 import { generateArticleWithAI } from '../../services/geminiService.ts';
+import { createOrUpdatePoll } from '../../services/pollService.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 import { useLanguage } from '../../contexts/LanguageContext.tsx';
 import Spinner from '../Spinner.tsx';
@@ -102,16 +103,32 @@ const ArticleManagement: React.FC = () => {
         }
     }
 
-    const handleFormSubmit = async (formData: FormData) => {
+    const handleFormSubmit = async (formData: FormData, articleId?: string) => {
         if (!user?.token) return;
         setIsSubmitting(true);
         setError(null);
+
         try {
-            if (editingArticle && editingArticle.id) {
-                await updateArticle(editingArticle.id, formData, user.token);
+            let savedArticle: Article;
+            if (articleId) {
+                savedArticle = await updateArticle(articleId, formData, user.token);
+                savedArticle.id = articleId; // updateArticle service might not return the full object
             } else {
-                await createArticle(formData, user.token);
+                savedArticle = await createArticle(formData, user.token);
             }
+            
+            const pollQuestion = formData.get('pollQuestion') as string;
+            const pollOptions = formData.getAll('pollOptions[]') as string[];
+            
+            if (pollQuestion && pollOptions.every(opt => opt.trim())) {
+                 await createOrUpdatePoll({
+                    articleId: savedArticle.id,
+                    question: pollQuestion,
+                    options: pollOptions
+                 }, user.token);
+            }
+
+
             setIsFormOpen(false);
             setEditingArticle(null);
             loadArticles();

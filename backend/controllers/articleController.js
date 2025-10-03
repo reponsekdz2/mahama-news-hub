@@ -156,7 +156,47 @@ const getArticleById = async (req, res, next) => {
         `, [req.params.id]);
 
         if (articles.length === 0) return res.status(404).json({ message: 'Article not found' });
-        res.json(articles[0]);
+        
+        const article = articles[0];
+        
+        // Fetch poll data if it exists
+        const [polls] = await db.query('SELECT id, question FROM polls WHERE article_id = ?', [req.params.id]);
+        if (polls.length > 0) {
+            const poll = polls[0];
+            const [options] = await db.query('SELECT id, option_text FROM poll_options WHERE poll_id = ?', [poll.id]);
+            
+            let userVote = null;
+            // req.user might not exist for public viewers, so we check for it
+            if (req.headers.authorization) {
+                try {
+                    const token = req.headers.authorization.split(' ')[1];
+                    const jwt = require('jsonwebtoken');
+                    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                     if (decoded.id) {
+                        const [votes] = await db.query('SELECT poll_option_id FROM poll_votes WHERE user_id = ? AND poll_id = ?', [decoded.id, poll.id]);
+                        if (votes.length > 0) {
+                            userVote = votes[0].poll_option_id;
+                        }
+                     }
+                } catch(e) { /* Ignore token errors for public viewers */ }
+            }
+
+            let totalVotes = 0;
+            for (const option of options) {
+                const [votes] = await db.query('SELECT COUNT(*) as count FROM poll_votes WHERE poll_option_id = ?', [option.id]);
+                option.voteCount = votes[0].count;
+                totalVotes += option.voteCount;
+            }
+
+            article.poll = {
+                ...poll,
+                options,
+                totalVotes,
+                userVote
+            };
+        }
+
+        res.json(article);
     } catch (error) {
         next(error);
     }

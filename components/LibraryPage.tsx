@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLibrary } from '../contexts/LibraryContext.tsx';
 import { useLanguage } from '../contexts/LanguageContext.tsx';
-import { Article } from '../types.ts';
+import { Article, Collection } from '../types.ts';
+import * as offlineService from '../services/offlineArticleService.ts';
 import ArticleCard from './ArticleCard.tsx';
 import Spinner from './Spinner.tsx';
 
@@ -11,17 +12,39 @@ interface LibraryPageProps {
 }
 
 const LibraryPage: React.FC<LibraryPageProps> = ({ onNavigateBack, onReadArticle }) => {
-  const { collections, isLoading } = useLibrary();
+  const { collections, isLoading: isLibraryLoading } = useLibrary();
   const { t } = useLanguage();
-  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+  const [offlineArticles, setOfflineArticles] = useState<Article[]>([]);
+  const [isOfflineLoading, setIsOfflineLoading] = useState(true);
 
-  React.useEffect(() => {
-    if (collections.length > 0 && !selectedCollectionId) {
-      setSelectedCollectionId(collections[0].id);
+  const offlineCollection: Collection = {
+      id: 'offline',
+      name: t('offlineArticles'),
+      articles: offlineArticles,
+      articleCount: offlineArticles.length
+  };
+  
+  const allCollections = [offlineCollection, ...collections];
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(offlineCollection.id);
+
+  useEffect(() => {
+    async function loadOfflineArticles() {
+      setIsOfflineLoading(true);
+      const articles = await offlineService.getOfflineArticles();
+      setOfflineArticles(articles);
+      setIsOfflineLoading(false);
     }
-  }, [collections, selectedCollectionId]);
+    loadOfflineArticles();
+  }, []);
 
-  const selectedCollection = collections.find(c => c.id === selectedCollectionId);
+  useEffect(() => {
+    if (allCollections.length > 0 && !selectedCollectionId) {
+      setSelectedCollectionId(allCollections[0].id);
+    }
+  }, [allCollections, selectedCollectionId]);
+
+  const selectedCollection = allCollections.find(c => c.id === selectedCollectionId);
+  const isLoading = isLibraryLoading || isOfflineLoading;
 
   return (
     <div className="my-6 md:my-8 fade-in">
@@ -37,7 +60,7 @@ const LibraryPage: React.FC<LibraryPageProps> = ({ onNavigateBack, onReadArticle
           <aside className="md:w-1/4">
             <h2 className="text-xl font-bold mb-4">Collections</h2>
             <ul className="space-y-2">
-              {collections.map(collection => (
+              {allCollections.map(collection => (
                 <li key={collection.id}>
                   <button
                     onClick={() => setSelectedCollectionId(collection.id)}

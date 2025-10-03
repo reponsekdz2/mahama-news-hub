@@ -15,6 +15,7 @@ import LibraryPage from './components/LibraryPage.tsx';
 import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
 import ErrorDisplay from './components/ErrorDisplay.tsx';
 import SearchOverlay from './components/SearchOverlay.tsx';
+import OfflineBanner from './components/OfflineBanner.tsx';
 import { useAuth } from './contexts/AuthContext.tsx';
 import { useLanguage } from './contexts/LanguageContext.tsx';
 import { useLibrary } from './contexts/LibraryContext.tsx';
@@ -42,6 +43,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<View>('news');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({ dateRange: 'all', sortBy: 'newest' });
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   const { user, isLoggedIn } = useAuth();
   const { t, loadUserLanguage } = useLanguage();
@@ -49,6 +51,19 @@ const App: React.FC = () => {
   const { loadUserSettings } = useSettings();
 
   const viewedAds = useRef(new Set<string>());
+  
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (user?.token) {
@@ -67,6 +82,13 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     viewedAds.current.clear();
+    
+    if (!isOnline) {
+        setError("You are currently offline. Please check your connection or browse your saved articles.");
+        setLoading(false);
+        setFeedItems([]);
+        return;
+    }
     
     try {
       let fetchedArticles: Article[] = [];
@@ -107,7 +129,7 @@ const App: React.FC = () => {
         window.scrollTo(0, 0);
       }
     }
-  }, [selectedTopic, searchQuery, user?.token, collections, view, searchFilters]);
+  }, [selectedTopic, searchQuery, user?.token, collections, view, searchFilters, isOnline]);
 
   useEffect(() => {
     if(view === 'news') {
@@ -125,11 +147,12 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSearch = (query: string) => {
+  const handleSearch = ({ query, filters }: { query: string; filters: SearchFilters }) => {
     setIsSearchOpen(false);
     setView('news');
     setSelectedTopic(query); 
     setSearchQuery(query);
+    setSearchFilters(filters);
   };
   
   const handleReadMore = (article: Article) => {
@@ -224,6 +247,7 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen font-sans text-gray-800 dark:text-gray-200 flex flex-col">
+      {!isOnline && <OfflineBanner />}
       <Header
         selectedTopic={selectedTopic}
         onTopicChange={handleTopicChange}

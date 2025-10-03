@@ -6,6 +6,7 @@ import { fetchTrendingArticles, TrendingArticle } from '../services/analyticsSer
 import { Article } from '../types.ts';
 import useDebounce from '../hooks/useDebounce.ts';
 import Spinner from './Spinner.tsx';
+import { SearchFilters } from '../App.tsx';
 
 // FIX: Add type definitions for Web Speech API to resolve TypeScript errors.
 interface SpeechRecognition extends EventTarget {
@@ -27,7 +28,7 @@ declare global {
 
 interface SearchOverlayProps {
     onClose: () => void;
-    onSearch: (query: string) => void;
+    onSearch: (params: { query: string; filters: SearchFilters }) => void;
 }
 
 const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
@@ -39,6 +40,8 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [activeIndex, setActiveIndex] = useState(-1);
+    const [filters, setFilters] = useState<SearchFilters>({ dateRange: 'all', sortBy: 'newest' });
+    
     const overlayRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const debouncedQuery = useDebounce(query, 300);
@@ -123,7 +126,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
         setRecentSearches(updatedRecent);
         localStorage.setItem('recentSearches', JSON.stringify(updatedRecent));
         
-        onSearch(searchTerm);
+        onSearch({ query: searchTerm, filters });
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -144,6 +147,13 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
             }
         }
     };
+    
+     const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setFilters({
+            ...filters,
+            [e.target.name]: e.target.value
+        });
+    }
 
     const combinedList = [
         ...suggestions.map(s => ({ type: 'suggestion', value: s.title })),
@@ -162,7 +172,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
                         onChange={(e) => { setQuery(e.target.value); setActiveIndex(-1); }}
                         onKeyDown={handleKeyDown}
                         placeholder={isListening ? t('listening') : t('searchPlaceholder')}
-                        className="w-full bg-transparent text-lg text-gray-800 dark:text-gray-200 pl-12 pr-20 py-4 border-b border-gray-200 dark:border-gray-700 focus:outline-none"
+                        className="w-full bg-transparent text-lg text-gray-800 dark:text-gray-200 pl-12 pr-20 py-4 focus:outline-none"
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center space-x-2">
                         {recognitionRef.current && (
@@ -181,7 +191,41 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
                     </div>
                 </div>
 
-                <div className="p-4 max-h-[60vh] overflow-y-auto">
+                {/* Filters Section */}
+                <div className="p-4 border-y border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex flex-col sm:flex-row items-center gap-4">
+                    <div className="w-full sm:w-1/2">
+                        <label htmlFor="dateRange-overlay" className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t('dateRange')}</label>
+                        <select
+                            id="dateRange-overlay"
+                            name="dateRange"
+                            value={filters.dateRange}
+                            onChange={handleFilterChange}
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm rounded-md bg-white dark:bg-gray-700"
+                        >
+                            <option value="all">{t('allTime')}</option>
+                            <option value="24h">{t('past24Hours')}</option>
+                            <option value="7d">{t('pastWeek')}</option>
+                            <option value="30d">{t('pastMonth')}</option>
+                        </select>
+                    </div>
+                     <div className="w-full sm:w-1/2">
+                        <label htmlFor="sortBy-overlay" className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t('sortBy')}</label>
+                        <select
+                            id="sortBy-overlay"
+                            name="sortBy"
+                            value={filters.sortBy}
+                            onChange={handleFilterChange}
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm rounded-md bg-white dark:bg-gray-700"
+                        >
+                            <option value="newest">{t('newest')}</option>
+                            <option value="oldest">{t('oldest')}</option>
+                            <option value="views">{t('mostViews')}</option>
+                            <option value="likes">{t('mostLikes')}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="p-4 max-h-[50vh] overflow-y-auto">
                     {isLoading && <div className="text-center py-4 text-sm text-gray-500">Searching...</div>}
                     {debouncedQuery && suggestions.length > 0 && (
                         <div className="mb-4">

@@ -167,3 +167,32 @@ CREATE TABLE admin_logs (
     FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_admin_action (admin_user_id, createdAt)
 );
+
+-- Interactive Content: Polls
+CREATE TABLE polls (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    article_id INT NOT NULL,
+    question VARCHAR(255) NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    UNIQUE KEY idx_article_id (article_id) -- Only one poll per article
+);
+
+CREATE TABLE poll_options (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    poll_id INT NOT NULL,
+    option_text VARCHAR(255) NOT NULL,
+    FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE
+);
+
+CREATE TABLE poll_votes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    poll_option_id INT NOT NULL,
+    poll_id INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (poll_option_id) REFERENCES poll_options(id) ON DELETE CASCADE,
+    FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE,
+    UNIQUE KEY user_poll_vote (user_id, poll_id)
+);

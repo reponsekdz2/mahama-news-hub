@@ -1,6 +1,5 @@
 import React, { ErrorInfo, ReactNode } from 'react';
 
-// FIX: The generic 'Props' and 'State' interface names can cause conflicts. Renaming them to be specific to this component resolves the typing error.
 interface ErrorBoundaryProps {
   children: ReactNode;
 }
@@ -11,15 +10,17 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // FIX: Initialize state using a public class field. This is a modern alternative to using a constructor and ensures `this.state` is correctly typed and available throughout the component.
   public state: ErrorBoundaryState = {
     hasError: false,
+    error: undefined,
   };
 
-  public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
     // Here you would typically log the error to a service like Sentry
   }
@@ -45,7 +46,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     window.location.href = `mailto:support@mahamanews.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
-  public render() {
+  render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col justify-center items-center p-4 text-center">

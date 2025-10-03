@@ -4,10 +4,11 @@ import { Article } from '../types.ts';
 import { useLanguage, CATEGORIES } from '../contexts/LanguageContext.tsx';
 import { improveWriting, generateImageIdea } from '../services/aiService.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import { createOrUpdatePoll } from '../services/pollService.ts';
 
 interface ArticleFormProps {
   articleToEdit?: Partial<Article> | null;
-  onFormSubmit: (formData: FormData) => void;
+  onFormSubmit: (formData: FormData, articleId?: string) => void;
   onCancel: () => void;
   isLoading: boolean;
 }
@@ -24,6 +25,10 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<'draft' | 'published'>('published');
   const [tags, setTags] = useState('');
+  
+  // Poll State
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
   
   const [isImproving, setIsImproving] = useState(false);
   const [isGeneratingIdea, setIsGeneratingIdea] = useState(false);
@@ -42,6 +47,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       setVideoPreview(articleToEdit.videoUrl || null);
       setStatus(articleToEdit.status || 'published');
       setTags((articleToEdit.tags || []).join(', '));
+      setPollQuestion(articleToEdit.poll?.question || '');
+      setPollOptions(articleToEdit.poll?.options.map(opt => opt.option_text) || ['', '']);
     } else {
         setTitle('');
         setContent('');
@@ -52,6 +59,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
         setVideoPreview(null);
         setStatus('published');
         setTags('');
+        setPollQuestion('');
+        setPollOptions(['', '']);
     }
   }, [articleToEdit]);
 
@@ -70,6 +79,25 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       setVideoPreview(URL.createObjectURL(file));
     }
   };
+
+  const handlePollOptionChange = (index: number, value: string) => {
+    const newOptions = [...pollOptions];
+    newOptions[index] = value;
+    setPollOptions(newOptions);
+  };
+  
+  const addPollOption = () => {
+      if (pollOptions.length < 10) {
+          setPollOptions([...pollOptions, '']);
+      }
+  };
+
+  const removePollOption = (index: number) => {
+      if (pollOptions.length > 2) {
+          setPollOptions(pollOptions.filter((_, i) => i !== index));
+      }
+  };
+
   
   const handleImproveWriting = async () => {
     if(!user?.token || !content) return;
@@ -113,7 +141,9 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
     if (video) {
       formData.append('video', video);
     }
-    onFormSubmit(formData);
+    
+    // Pass poll data with the callback
+    onFormSubmit(formData, articleToEdit?.id);
   };
 
   return (
@@ -230,8 +260,29 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
             </div>
           </div>
       </div>
+      
+      {/* Poll Section */}
+      <div className="border-t dark:border-gray-700 pt-6">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Interactive Poll (Optional)</h3>
+        <div className="mt-4 space-y-4">
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Poll Question</label>
+                <input type="text" value={pollQuestion} onChange={e => setPollQuestion(e.target.value)} placeholder="E.g., What do you think?" className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md" />
+            </div>
+            {pollOptions.map((option, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                    <input type="text" value={option} onChange={e => handlePollOptionChange(index, e.target.value)} placeholder={`Option ${index + 1}`} className="block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md" />
+                    <button type="button" onClick={() => removePollOption(index)} disabled={pollOptions.length <= 2} className="p-2 text-gray-400 hover:text-red-500 disabled:opacity-50 disabled:hover:text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
+                    </button>
+                </div>
+            ))}
+            <button type="button" onClick={addPollOption} disabled={pollOptions.length >= 10} className="text-sm font-medium text-accent-600 hover:text-accent-800 disabled:opacity-50">+ Add Option</button>
+        </div>
+      </div>
 
-      <div className="flex justify-end space-x-4 pt-4">
+
+      <div className="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700 mt-6">
         <button
           type="button"
           onClick={onCancel}

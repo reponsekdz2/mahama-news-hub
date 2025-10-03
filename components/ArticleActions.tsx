@@ -3,6 +3,7 @@ import { Article } from '../types.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useLibrary } from '../contexts/LibraryContext.tsx';
 import { likeArticle, unlikeArticle, trackShare } from '../services/articleService.ts';
+import * as offlineService from '../services/offlineArticleService.ts';
 import SaveToCollectionModal from './SaveToCollectionModal.tsx';
 import { useLanguage } from '../contexts/LanguageContext.tsx';
 
@@ -19,6 +20,7 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
     const [isLiked, setIsLiked] = useState(article.isLiked);
     const [likeCount, setLikeCount] = useState(article.likeCount);
     const [copySuccess, setCopySuccess] = useState('');
+    const [isOffline, setIsOffline] = useState(false);
 
     const [isShareOpen, setIsShareOpen] = useState(false);
     const shareRef = useRef<HTMLDivElement>(null);
@@ -26,7 +28,8 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
     useEffect(() => {
         setIsLiked(article.isLiked);
         setLikeCount(article.likeCount);
-    }, [article.isLiked, article.likeCount]);
+        offlineService.isArticleOffline(article.id).then(setIsOffline);
+    }, [article.isLiked, article.likeCount, article.id]);
 
      useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -51,6 +54,16 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
             console.error("Failed to update like status", error);
             setIsLiked(originalIsLiked);
             setLikeCount(prev => isLiked ? prev + 1 : prev - 1);
+        }
+    };
+    
+    const handleOfflineToggle = async () => {
+        if (isOffline) {
+            await offlineService.removeArticleFromOffline(article.id);
+            setIsOffline(false);
+        } else {
+            await offlineService.saveArticleForOffline(article);
+            setIsOffline(true);
         }
     };
 
@@ -103,6 +116,13 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
                 <div className="flex items-center space-x-2">
                     <button onClick={handleLike} disabled={!isLoggedIn} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50" aria-label="Like article">
                         <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-colors ${isLiked ? 'text-accent-500' : 'text-gray-500 dark:text-gray-400'}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
+                    </button>
+                    <button onClick={handleOfflineToggle} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label={isOffline ? t('removeFromOffline') : t('savedForOffline')}>
+                        {isOffline ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-accent-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                        ) : (
+                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        )}
                     </button>
                     {isLoggedIn && (
                         <button onClick={() => setIsCollectionModalOpen(true)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Save to collection">

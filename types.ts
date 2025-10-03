@@ -20,6 +20,21 @@ export interface UserPreferences {
     commentNotificationsEnabled?: boolean;
 }
 
+export interface PollOption {
+  id: string;
+  option_text: string;
+  voteCount?: number;
+}
+
+export interface Poll {
+  id: string;
+  question: string;
+  options: PollOption[];
+  totalVotes?: number;
+  userVote?: string; // The ID of the option the user voted for
+}
+
+
 export interface Article {
   id: string;
   title: string;
@@ -33,6 +48,7 @@ export interface Article {
   isLiked?: boolean; // Optional as it might depend on the user context
   tags?: string[];
   status?: 'draft' | 'published';
+  poll?: Poll;
 }
 
 export interface Advertisement {
@@ -61,7 +77,7 @@ export interface Collection {
 }
 
 export interface Notification {
-    id: string;
+    id:string;
     type: 'new_comment';
     relatedArticleId: string;
     relatedArticleTitle: string;

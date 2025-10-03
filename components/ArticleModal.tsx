@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Article } from '../types.ts';
 import AIToolsPanel from './AIToolsPanel.tsx';
 import CommentsSection from './CommentsSection.tsx';
+import Poll from './Poll.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import useSpeechSynthesis from '../hooks/useSpeechSynthesis.ts';
 import ArticleActions from './ArticleActions.tsx';
@@ -114,6 +115,8 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) => {
           <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 quill-content" dangerouslySetInnerHTML={{ __html: article.content }} />
           
           <div className={`transition-opacity duration-300 ${isReaderMode ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
+              {article.poll && <Poll initialPoll={article.poll} />}
+              
               {article.tags && article.tags.length > 0 && (
                 <div className="mt-6 pt-4 border-t dark:border-gray-700 flex flex-wrap gap-2">
                   {article.tags.map(tag => (

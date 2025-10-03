@@ -1,4 +1,5 @@
 import { Article, Advertisement } from '../types.ts';
+import { SearchFilters } from '../App.tsx';
 
 const API_URL = '/api/articles';
 
@@ -13,12 +14,18 @@ const handleResponse = async (response: Response) => {
     return response.json();
 }
 
-export const fetchArticlesWithAds = async (topic: string, token?: string): Promise<{articles: Article[], ads: Advertisement[]}> => {
+export const fetchArticlesWithAds = async (topic: string, filters: SearchFilters, token?: string): Promise<{articles: Article[], ads: Advertisement[]}> => {
     const headers: HeadersInit = {};
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
-    const response = await fetch(`${API_URL}?topic=${encodeURIComponent(topic)}`, { headers });
+    const params = new URLSearchParams({
+        topic,
+        dateRange: filters.dateRange,
+        sortBy: filters.sortBy
+    });
+
+    const response = await fetch(`${API_URL}?${params.toString()}`, { headers });
     const data = await handleResponse(response);
     
     const articlesWithTags = data.articles.map((article: any) => ({

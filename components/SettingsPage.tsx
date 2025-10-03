@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSettings, availableColors, ACCENT_COLORS } from '../contexts/SettingsContext.tsx';
+import { useSettings, availableColors, ACCENT_COLORS, FontSize, LineHeight } from '../contexts/SettingsContext.tsx';
 import { useLanguage, CATEGORIES } from '../contexts/LanguageContext.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { updateProfile, getPreferences, updatePreference, clearReadingHistory } from '../services/userService.ts';
@@ -10,7 +10,7 @@ interface SettingsPageProps {
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
-  const { theme, setTheme, accentColor, setAccentColor } = useSettings();
+  const { theme, setTheme, accentColor, setAccentColor, fontSize, setFontSize, lineHeight, setLineHeight } = useSettings();
   const { language, setLanguage, t } = useLanguage();
   const { user, updateUser, logout } = useAuth();
   
@@ -116,6 +116,28 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
     </div>
   )
 
+  const SettingRow: React.FC<{title: string, children: React.ReactNode}> = ({title, children}) => (
+      <div>
+          <h4 className="text-gray-700 dark:text-gray-300 mb-2">{title}</h4>
+          {children}
+      </div>
+  )
+  
+  const SegmentedControl: React.FC<{options: {label: string, value: string}[], value: string, onChange: (value: any) => void}> = ({ options, value, onChange }) => (
+      <div className="flex items-center space-x-2 p-1 bg-gray-200 dark:bg-gray-700 rounded-md">
+          {options.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => onChange(opt.value)}
+                className={`flex-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${value === opt.value ? 'bg-white dark:bg-gray-800 shadow-sm' : 'text-gray-600 dark:text-gray-400'}`}
+              >
+                  {t(opt.label)}
+              </button>
+          ))}
+      </div>
+  )
+
+
   return (
     <>
     {isDeleteModalOpen && <DeleteAccountModal onClose={() => setIsDeleteModalOpen(false)} onConfirm={logout} />}
@@ -126,8 +148,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 md:p-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            {/* Left Column */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
             <div>
                 <h2 className="text-xl font-bold mb-4">Appearance</h2>
                 <div className="space-y-6">
@@ -156,12 +177,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
                 </div>
             </div>
 
-            {/* Right Column */}
             <div>
                 <h2 className="text-xl font-bold mb-4">Preferences</h2>
                 <div className="space-y-6">
-                    <div>
-                        <h4 className="text-gray-700 dark:text-gray-300 mb-2">Content Preferences</h4>
+                    <SettingRow title="Content Preferences">
                         <div className="flex flex-wrap gap-2">
                             {CATEGORIES.filter(c => c !== 'Top Stories').map(cat => (
                                 <button key={cat} onClick={() => handleContentPrefChange(cat)} className={`px-3 py-1 text-sm rounded-full border ${contentPrefs.includes(cat) ? 'bg-accent-500 text-white border-accent-500' : 'bg-transparent border-gray-300 dark:border-gray-600'}`}>
@@ -169,9 +188,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
                                 </button>
                             ))}
                         </div>
-                    </div>
-                    <div>
-                        <h4 className="text-gray-700 dark:text-gray-300 mb-2">Notifications</h4>
+                    </SettingRow>
+                    <SettingRow title="Notifications">
                          <div className="flex items-center justify-between">
                             <label htmlFor="comment-notifications" className="text-sm text-gray-700 dark:text-gray-300">New comment notifications</label>
                             <input type="checkbox" id="comment-notifications" checked={commentNotifications} onChange={e => handleCommentNotificationChange(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-accent-600 focus:ring-accent-500"/>
@@ -180,10 +198,22 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
                             <label htmlFor="newsletter" className="text-sm text-gray-700 dark:text-gray-300">Subscribe to weekly newsletter</label>
                             <input type="checkbox" id="newsletter" checked={newsletter} onChange={e => handleNewsletterChange(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-accent-600 focus:ring-accent-500"/>
                         </div>
-                    </div>
+                    </SettingRow>
                 </div>
             </div>
         </div>
+        
+        {/* Accessibility Settings */}
+        <Section title={t('accessibility')}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <SettingRow title={t('fontSize')}>
+                    <SegmentedControl options={[{label: 'small', value: 'sm'}, {label: 'medium', value: 'base'}, {label: 'large', value: 'lg'}]} value={fontSize} onChange={(val: FontSize) => setFontSize(val)} />
+                </SettingRow>
+                <SettingRow title={t('lineHeight')}>
+                    <SegmentedControl options={[{label: 'normal', value: 'normal'}, {label: 'relaxed', value: 'relaxed'}, {label: 'spacious', value: 'loose'}]} value={lineHeight} onChange={(val: LineHeight) => setLineHeight(val)} />
+                </SettingRow>
+            </div>
+        </Section>
 
         {/* Profile Settings */}
         <Section title="Profile">

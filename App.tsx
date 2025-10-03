@@ -12,6 +12,8 @@ import AdminPanel from './components/AdminPanel.tsx';
 import SettingsPage from './components/SettingsPage.tsx';
 import AdBanner from './components/AdBanner.tsx';
 import LibraryPage from './components/LibraryPage.tsx';
+import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
+import ErrorDisplay from './components/ErrorDisplay.tsx';
 import { useAuth } from './contexts/AuthContext.tsx';
 import { useLanguage } from './contexts/LanguageContext.tsx';
 import { useLibrary } from './contexts/LibraryContext.tsx';
@@ -23,6 +25,10 @@ import { fetchReadingHistory } from './services/userService.ts';
 
 type FeedItem = Article | (Advertisement & { isAd: true });
 type View = 'news' | 'admin' | 'settings' | 'library';
+export type SearchFilters = {
+    dateRange: 'all' | '24h' | '7d' | '30d';
+    sortBy: 'newest' | 'oldest' | 'views' | 'likes';
+}
 
 const App: React.FC = () => {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
@@ -33,6 +39,7 @@ const App: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<View>('news');
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({ dateRange: 'all', sortBy: 'newest' });
   
   const { user, isLoggedIn, login } = useAuth();
   const { t, loadUserLanguage } = useLanguage();
@@ -70,7 +77,7 @@ const App: React.FC = () => {
           fetchedArticles = await fetchPersonalizedNews(favoriteCategories, user.token);
       } else {
           const topicToFetch = searchQuery || selectedTopic;
-          const { articles, ads } = await fetchArticlesWithAds(topicToFetch, user?.token);
+          const { articles, ads } = await fetchArticlesWithAds(topicToFetch, searchFilters, user?.token);
           fetchedArticles = articles;
           fetchedAds = ads;
       }
@@ -98,7 +105,7 @@ const App: React.FC = () => {
         window.scrollTo(0, 0);
       }
     }
-  }, [selectedTopic, searchQuery, user?.token, collections, view]);
+  }, [selectedTopic, searchQuery, user?.token, collections, view, searchFilters]);
 
   useEffect(() => {
     if(view === 'news') {
@@ -152,6 +159,9 @@ const App: React.FC = () => {
                     <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white my-6 md:my-8 border-b-4 border-accent-500 pb-2">
                     {searchQuery ? `${t('searchResultsFor')} "${searchQuery}"` : t(selectedTopic as any) || selectedTopic}
                     </h1>
+
+                    <AdvancedSearchBar filters={searchFilters} onFiltersChange={setSearchFilters} />
+
                     {loading ? (
                     <>
                         <MainArticleSkeleton />
@@ -160,7 +170,7 @@ const App: React.FC = () => {
                         </div>
                     </>
                     ) : error ? (
-                    <p className="text-center text-red-500 bg-red-100 dark:bg-red-900/50 p-4 rounded-lg">{error}</p>
+                     <ErrorDisplay message={error} onRetry={loadNews} />
                     ) : (
                     <>
                         {mainArticle ? (

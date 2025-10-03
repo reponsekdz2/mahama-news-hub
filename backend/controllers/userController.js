@@ -79,9 +79,19 @@ const deleteMyAccount = async (req, res, next) => {
 // @desc    Get current user's preferences
 const getUserPreferences = async (req, res, next) => {
     try {
-        const [prefs] = await db.query('SELECT theme, accentColor, language, content_preferences, newsletter_subscribed, comment_notifications_enabled FROM user_preferences WHERE user_id = ?', [req.user.id]);
+        const [prefs] = await db.query('SELECT * FROM user_preferences WHERE user_id = ?', [req.user.id]);
         if (prefs.length === 0) {
-            return res.json({ theme: 'dark', accentColor: 'red', language: 'en', content_preferences: [], newsletter_subscribed: false, comment_notifications_enabled: true });
+            // Return default preferences if none are found
+            return res.json({ 
+                theme: 'dark', 
+                accentColor: 'red', 
+                language: 'en', 
+                fontSize: 'base',
+                lineHeight: 'normal',
+                content_preferences: [], 
+                newsletter_subscribed: false, 
+                comment_notifications_enabled: true 
+            });
         }
         res.json({
             ...prefs[0],
@@ -97,12 +107,14 @@ const getUserPreferences = async (req, res, next) => {
 // @desc    Update current user's preferences
 const updateUserPreferences = async (req, res, next) => {
     const userId = req.user.id;
-    const { theme, accentColor, language, contentPreferences, newsletter, commentNotificationsEnabled } = req.body;
+    const { theme, accentColor, language, contentPreferences, newsletter, commentNotificationsEnabled, fontSize, lineHeight } = req.body;
     let query = 'UPDATE user_preferences SET';
     const params = [];
     if (theme) { query += ' theme = ?,'; params.push(theme); }
     if (accentColor) { query += ' accentColor = ?,'; params.push(accentColor); }
     if (language) { query += ' language = ?,'; params.push(language); }
+    if (fontSize) { query += ' fontSize = ?,'; params.push(fontSize); }
+    if (lineHeight) { query += ' lineHeight = ?,'; params.push(lineHeight); }
     if (contentPreferences) { query += ' content_preferences = ?,'; params.push(JSON.stringify(contentPreferences)); }
     if (typeof newsletter === 'boolean') { query += ' newsletter_subscribed = ?,'; params.push(newsletter); }
     if (typeof commentNotificationsEnabled === 'boolean') { query += ' comment_notifications_enabled = ?,'; params.push(commentNotificationsEnabled); }

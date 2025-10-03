@@ -6,6 +6,8 @@ import { useAuth } from '../../contexts/AuthContext.tsx';
 import { useLanguage } from '../../contexts/LanguageContext.tsx';
 import Spinner from '../Spinner.tsx';
 import ArticleForm from '../ArticleForm.tsx';
+// FIX: Import SearchFilters type from App.tsx
+import { SearchFilters } from '../../App.tsx';
 
 const GenerateArticleModal: React.FC<{onClose: () => void, onGenerate: (topic: string) => void, isLoading: boolean}> = ({onClose, onGenerate, isLoading}) => {
     const [topic, setTopic] = useState('');
@@ -49,7 +51,9 @@ const ArticleManagement: React.FC = () => {
     const loadArticles = useCallback(async () => {
         setIsLoading(true);
         try {
-            const { articles } = await fetchArticlesWithAds('Top Stories', user?.token);
+            // FIX: Correct arguments for fetchArticlesWithAds. It expects filters as the second argument.
+            const defaultFilters: SearchFilters = { dateRange: 'all', sortBy: 'newest' };
+            const { articles } = await fetchArticlesWithAds('Top Stories', defaultFilters, user?.token);
             setArticles(articles);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load articles.');

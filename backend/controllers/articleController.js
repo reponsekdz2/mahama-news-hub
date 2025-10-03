@@ -23,7 +23,7 @@ const handleArticleTags = async (connection, articleId, tagsString) => {
 
 const getArticles = async (req, res, next) => {
     try {
-        const { topic } = req.query;
+        const { topic, dateRange = 'all', sortBy = 'newest' } = req.query;
         let query = `
             SELECT 
                 a.id, a.title, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
@@ -48,8 +48,37 @@ const getArticles = async (req, res, next) => {
             queryParams.push(topic, searchTerm, searchTerm, topic);
         }
 
+        // Date range filtering
+        if (dateRange === '24h') {
+            whereClauses.push('a.createdAt >= NOW() - INTERVAL 1 DAY');
+        } else if (dateRange === '7d') {
+            whereClauses.push('a.createdAt >= NOW() - INTERVAL 7 DAY');
+        } else if (dateRange === '30d') {
+            whereClauses.push('a.createdAt >= NOW() - INTERVAL 30 DAY');
+        }
+
+
         if (whereClauses.length > 0) query += ' WHERE ' + whereClauses.join(' AND ');
-        query += ' GROUP BY a.id ORDER BY a.createdAt DESC';
+        
+        query += ' GROUP BY a.id';
+
+        // Sorting
+        switch(sortBy) {
+            case 'oldest':
+                query += ' ORDER BY a.createdAt ASC';
+                break;
+            case 'views':
+                query += ' ORDER BY viewCount DESC';
+                break;
+            case 'likes':
+                query += ' ORDER BY likeCount DESC';
+                break;
+            case 'newest':
+            default:
+                 query += ' ORDER BY a.createdAt DESC';
+                 break;
+        }
+
 
         const [articles] = await db.query(query, queryParams);
         

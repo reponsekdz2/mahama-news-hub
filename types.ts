@@ -13,6 +13,8 @@ export interface UserPreferences {
     theme: 'light' | 'dark';
     accentColor: 'red' | 'orange' | 'green' | 'blue' | 'purple' | 'teal' | 'pink';
     language: 'en' | 'fr' | 'rw';
+    fontSize?: 'sm' | 'base' | 'lg';
+    lineHeight?: 'normal' | 'relaxed' | 'loose';
     contentPreferences?: string[];
     newsletter?: boolean;
     commentNotificationsEnabled?: boolean;

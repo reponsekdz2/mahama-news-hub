@@ -14,8 +14,8 @@ const handleResponse = async (response: Response) => {
 }
 
 // Analytics
-export const fetchAnalytics = async (token: string) => {
-    const response = await fetch(`${API_URL}/analytics`, {
+export const fetchAnalytics = async (range: '7d' | '30d' | 'all', token: string) => {
+    const response = await fetch(`${API_URL}/analytics/advanced?range=${range}`, {
         headers: { 'Authorization': `Bearer ${token}` }
     });
     return handleResponse(response);

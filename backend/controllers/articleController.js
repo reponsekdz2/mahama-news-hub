@@ -1,11 +1,10 @@
 const db = require('../config/db');
+const { logUserAction, logAdminAction } = require('../services/logService');
 
 // Helper function to manage article tags within a transaction
 const handleArticleTags = async (connection, articleId, tagsString) => {
-    // Clear existing tags for the article
     await connection.query('DELETE FROM article_tags WHERE article_id = ?', [articleId]);
     if (!tagsString) return;
-
     const tagNames = tagsString.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
     if (tagNames.length === 0) return;
 
@@ -22,10 +21,6 @@ const handleArticleTags = async (connection, articleId, tagsString) => {
     }
 };
 
-
-// @desc    Get articles, optionally by topic/search, and include active ads
-// @route   GET /api/articles
-// @access  Public
 const getArticles = async (req, res, next) => {
     try {
         const { topic } = req.query;
@@ -42,27 +37,22 @@ const getArticles = async (req, res, next) => {
             LEFT JOIN tags t ON at.tag_id = t.id
         `;
         const queryParams = [];
-
-        let whereClauses = [];
-        // Non-admins can only see published articles. Admins see all.
-        if (req.user?.role !== 'admin') {
-            whereClauses.push('a.status = "published"');
+        let whereClauses = ['a.status = "published"'];
+        if (req.user?.role === 'admin') {
+           whereClauses = []; // Admin can see all articles including drafts
         }
 
         if (topic && topic !== 'Top Stories') {
-            whereClauses.push('(a.category = ? OR a.title LIKE ? OR a.content LIKE ?)');
-            queryParams.push(topic, `%${topic}%`, `%${topic}%`);
+            whereClauses.push('(a.category = ? OR a.title LIKE ? OR a.content LIKE ? OR t.name = ?)');
+            const searchTerm = `%${topic}%`;
+            queryParams.push(topic, searchTerm, searchTerm, topic);
         }
 
-        if (whereClauses.length > 0) {
-            query += ' WHERE ' + whereClauses.join(' AND ');
-        }
-        
+        if (whereClauses.length > 0) query += ' WHERE ' + whereClauses.join(' AND ');
         query += ' GROUP BY a.id ORDER BY a.createdAt DESC';
 
         const [articles] = await db.query(query, queryParams);
         
-        // Fetch active ads
         const [ads] = await db.query(`
             SELECT id, title, image_url as imageUrl, link_url as linkUrl, status, placement
             FROM advertisements
@@ -75,9 +65,6 @@ const getArticles = async (req, res, next) => {
     }
 };
 
-// @desc    Get single article by ID
-// @route   GET /api/articles/:id
-// @access  Public
 const getArticleById = async (req, res, next) => {
     try {
         const [articles] = await db.query(`
@@ -91,74 +78,50 @@ const getArticleById = async (req, res, next) => {
             JOIN users u ON a.author_id = u.id
             LEFT JOIN article_tags at ON a.id = at.article_id
             LEFT JOIN tags t ON at.tag_id = t.id
-            WHERE a.id = ?
-            GROUP BY a.id
+            WHERE a.id = ? GROUP BY a.id
         `, [req.params.id]);
 
-        if (articles.length === 0) {
-            return res.status(404).json({ message: 'Article not found' });
-        }
+        if (articles.length === 0) return res.status(404).json({ message: 'Article not found' });
         res.json(articles[0]);
     } catch (error) {
         next(error);
     }
 };
 
-// @desc    Get related articles
-// @route   GET /api/articles/:id/related
-// @access  Public
 const getRelatedArticles = async (req, res, next) => {
-    const articleId = req.params.id;
     try {
-        // First, get the category of the current article
-        const [currentArticle] = await db.query('SELECT category FROM articles WHERE id = ?', [articleId]);
-        if (currentArticle.length === 0) {
-            return res.status(404).json({ message: 'Article not found' });
-        }
-        const category = currentArticle[0].category;
-
-        // Now, fetch other articles from the same category
-        const [relatedArticles] = await db.query(`
-            SELECT id, title, image_url as imageUrl, category 
-            FROM articles 
+        const [current] = await db.query('SELECT category FROM articles WHERE id = ?', [req.params.id]);
+        if (current.length === 0) return res.json([]);
+        const [related] = await db.query(`
+            SELECT id, title, image_url as imageUrl, category FROM articles 
             WHERE category = ? AND id != ? AND status = 'published'
-            ORDER BY createdAt DESC
-            LIMIT 3
-        `, [category, articleId]);
-
-        res.json(relatedArticles);
+            ORDER BY createdAt DESC LIMIT 3
+        `, [current[0].category, req.params.id]);
+        res.json(related);
     } catch (error) {
         next(error);
     }
 };
 
-
-// @desc    Create a new article
-// @route   POST /api/articles
-// @access  Admin
 const createArticle = async (req, res, next) => {
     const { title, content, category, status, tags } = req.body;
     const author_id = req.user.id;
     const imageUrl = req.files.image ? `/uploads/${req.files.image[0].filename}` : null;
     const videoUrl = req.files.video ? `/uploads/${req.files.video[0].filename}` : null;
-
-    if (!title || !content || !category || !imageUrl) {
-        return res.status(400).json({ message: 'Please provide all required fields (title, content, category, image).' });
-    }
+    if (!title || !content || !category || !imageUrl) return res.status(400).json({ message: 'Title, content, category, and image are required.' });
 
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-
         const [result] = await connection.query(
             'INSERT INTO articles (title, content, category, image_url, video_url, author_id, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [title, content, category, imageUrl, videoUrl, author_id, status || 'published']
         );
         const articleId = result.insertId;
-
         await handleArticleTags(connection, articleId, tags);
-        
         await connection.commit();
+        
+        logAdminAction(req.user.id, 'create', 'article', articleId, { title, category });
         res.status(201).json({ id: articleId, title, content, category, imageUrl, videoUrl, author_id, status, tags });
     } catch (error) {
         await connection.rollback();
@@ -168,9 +131,6 @@ const createArticle = async (req, res, next) => {
     }
 };
 
-// @desc    Update an article
-// @route   PUT /api/articles/:id
-// @access  Admin
 const updateArticle = async (req, res, next) => {
     const { title, content, category, status, tags } = req.body;
     const articleId = req.params.id;
@@ -180,15 +140,14 @@ const updateArticle = async (req, res, next) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-
         await connection.query(
             'UPDATE articles SET title = ?, content = ?, category = ?, image_url = ?, video_url = ?, status = ? WHERE id = ?',
             [title, content, category, imageUrl, videoUrl, status, articleId]
         );
-        
         await handleArticleTags(connection, articleId, tags);
-
         await connection.commit();
+
+        logAdminAction(req.user.id, 'update', 'article', articleId, { title, category });
         res.json({ message: 'Article updated successfully' });
     } catch (error) {
         await connection.rollback();
@@ -198,72 +157,65 @@ const updateArticle = async (req, res, next) => {
     }
 };
 
-// @desc    Delete an article
-// @route   DELETE /api/articles/:id
-// @access  Admin
 const deleteArticle = async (req, res, next) => {
     try {
         await db.query('DELETE FROM articles WHERE id = ?', [req.params.id]);
+        logAdminAction(req.user.id, 'delete', 'article', req.params.id, {});
         res.status(204).send();
     } catch (error) {
         next(error);
     }
 };
 
-// ... (like, unlike, recordView, comments functions remain the same)
-// @desc    Like an article
-// @route   POST /api/articles/:id/like
-// @access  Protected
 const likeArticle = async (req, res, next) => {
     try {
-        // Check if already liked
-        const [existingLike] = await db.query('SELECT id FROM article_likes WHERE user_id = ? AND article_id = ?', [req.user.id, req.params.id]);
-        if (existingLike.length > 0) {
-            return res.status(400).json({ message: 'Article already liked' });
-        }
-        await db.query('INSERT INTO article_likes (user_id, article_id) VALUES (?, ?)', [req.user.id, req.params.id]);
+        await db.query('INSERT IGNORE INTO article_likes (user_id, article_id) VALUES (?, ?)', [req.user.id, req.params.id]);
+        logUserAction(req.user.id, 'like', req.params.id);
         res.status(201).json({ message: 'Article liked' });
     } catch (error) {
         next(error);
     }
 };
 
-// @desc    Unlike an article
-// @route   DELETE /api/articles/:id/like
-// @access  Protected
 const unlikeArticle = async (req, res, next) => {
     try {
         await db.query('DELETE FROM article_likes WHERE user_id = ? AND article_id = ?', [req.user.id, req.params.id]);
+        logUserAction(req.user.id, 'unlike', req.params.id);
         res.status(204).send();
     } catch (error) {
         next(error);
     }
 };
 
-// @desc    Record a view for an article
-// @route   POST /api/articles/:id/view
-// @access  Public
 const recordView = async (req, res, next) => {
+    const articleId = req.params.id;
+    const userId = req.user ? req.user.id : null;
     try {
-        // Here you might add logic to prevent multiple views from the same user in a short time
-        await db.query('INSERT INTO article_views (article_id) VALUES (?)', [req.params.id]);
+        await db.query('INSERT INTO article_views (article_id, user_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE createdAt = CURRENT_TIMESTAMP', [articleId, userId]);
+        if(userId) logUserAction(userId, 'view', articleId);
         res.status(201).json({ message: 'View recorded' });
     } catch (error) {
         next(error);
     }
 };
 
-// @desc Get comments for an article
-// @route GET /api/articles/:id/comments
-// @access Public
+const recordShare = async (req, res, next) => {
+    const articleId = req.params.id;
+    const { platform } = req.body;
+    try {
+        logUserAction(req.user.id, 'share_article', articleId, { platform });
+        res.status(201).json({ message: 'Share recorded' });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const getCommentsForArticle = async (req, res, next) => {
     try {
         const [comments] = await db.query(`
-            SELECT c.id, c.content, c.createdAt, u.name as userName 
-            FROM comments c
+            SELECT c.id, c.content, c.createdAt, u.name as userName FROM comments c
             JOIN users u ON c.user_id = u.id
-            WHERE c.article_id = ?
-            ORDER BY c.createdAt DESC
+            WHERE c.article_id = ? ORDER BY c.createdAt DESC
         `, [req.params.id]);
         res.json(comments);
     } catch (error) {
@@ -271,45 +223,32 @@ const getCommentsForArticle = async (req, res, next) => {
     }
 }
 
-// @desc Add a comment to an article and notify other commenters
-// @route POST /api/articles/:id/comments
-// @access Protected
 const addCommentToArticle = async (req, res, next) => {
     const { content } = req.body;
     const { id: article_id } = req.params;
     const { id: user_id, name: actor_name } = req.user;
-
-    if (!content) {
-        return res.status(400).json({ message: 'Comment content cannot be empty' });
-    }
+    if (!content) return res.status(400).json({ message: 'Comment content cannot be empty' });
 
     try {
         const [result] = await db.query('INSERT INTO comments (article_id, user_id, content) VALUES (?, ?, ?)', [article_id, user_id, content]);
         const [newComment] = await db.query(`
-            SELECT c.id, c.content, c.createdAt, u.name as userName
-            FROM comments c
-            JOIN users u ON c.user_id = u.id
-            WHERE c.id = ?
+            SELECT c.id, c.content, c.createdAt, u.name as userName FROM comments c
+            JOIN users u ON c.user_id = u.id WHERE c.id = ?
         `, [result.insertId]);
 
-        // --- Notification Logic ---
-        // Find all other unique users who have commented on this article
         const [commenters] = await db.query(
             'SELECT DISTINCT c.user_id FROM comments c JOIN user_preferences up ON c.user_id = up.user_id WHERE c.article_id = ? AND c.user_id != ? AND up.comment_notifications_enabled = 1',
             [article_id, user_id]
         );
-
         if (commenters.length > 0) {
-            const notificationPromises = commenters.map(commenter => {
-                return db.query(
-                    'INSERT INTO notifications (user_id, actor_name, type, related_article_id) VALUES (?, ?, ?, ?)',
-                    [commenter.user_id, actor_name, 'new_comment', article_id]
-                );
-            });
-            await Promise.all(notificationPromises);
+            const promises = commenters.map(c => db.query(
+                'INSERT INTO notifications (user_id, actor_name, type, related_article_id) VALUES (?, ?, ?, ?)',
+                [c.user_id, actor_name, 'new_comment', article_id]
+            ));
+            await Promise.all(promises);
         }
-        // --- End Notification Logic ---
         
+        logUserAction(user_id, 'comment', article_id, { commentId: result.insertId });
         res.status(201).json(newComment[0]);
     } catch (error) {
         next(error);
@@ -317,15 +256,7 @@ const addCommentToArticle = async (req, res, next) => {
 }
 
 module.exports = {
-    getArticles,
-    getArticleById,
-    createArticle,
-    updateArticle,
-    deleteArticle,
-    likeArticle,
-    unlikeArticle,
-    recordView,
-    getCommentsForArticle,
-    addCommentToArticle,
-    getRelatedArticles
+    getArticles, getArticleById, createArticle, updateArticle, deleteArticle,
+    likeArticle, unlikeArticle, recordView, getCommentsForArticle, addCommentToArticle,
+    getRelatedArticles, recordShare,
 };

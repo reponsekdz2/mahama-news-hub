@@ -11,7 +11,8 @@ const {
     recordView,
     getCommentsForArticle,
     addCommentToArticle,
-    getRelatedArticles
+    getRelatedArticles,
+    recordShare, // New controller for sharing
 } = require('../controllers/articleController');
 const { protect, adminProtect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -19,7 +20,7 @@ const upload = require('../middleware/uploadMiddleware');
 // Public routes
 router.get('/', getArticles); 
 router.get('/:id', getArticleById);
-router.get('/:id/related', getRelatedArticles); // New route for related articles
+router.get('/:id/related', getRelatedArticles);
 router.post('/:id/view', recordView);
 router.get('/:id/comments', getCommentsForArticle);
 
@@ -27,6 +28,7 @@ router.get('/:id/comments', getCommentsForArticle);
 router.post('/:id/like', protect, likeArticle);
 router.delete('/:id/like', protect, unlikeArticle);
 router.post('/:id/comments', protect, addCommentToArticle);
+router.post('/:id/share', protect, recordShare); // New route for sharing
 
 // Admin routes (user must be an admin)
 router.post('/', adminProtect, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'video', maxCount: 1 }]), createArticle);

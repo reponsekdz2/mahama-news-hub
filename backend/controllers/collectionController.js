@@ -1,8 +1,7 @@
 const db = require('../config/db');
+const { logUserAction } = require('../services/logService');
 
 // @desc    Get all collections for a user
-// @route   GET /api/collections
-// @access  Protected
 const getCollections = async (req, res, next) => {
     try {
         const [collections] = await db.query(`
@@ -14,7 +13,6 @@ const getCollections = async (req, res, next) => {
             ORDER BY c.name ASC
         `, [req.user.id]);
         
-        // For each collection, get its articles
         for(let collection of collections) {
             const [articles] = await db.query(`
                  SELECT 
@@ -38,8 +36,6 @@ const getCollections = async (req, res, next) => {
 };
 
 // @desc    Create a new collection
-// @route   POST /api/collections
-// @access  Protected
 const createCollection = async (req, res, next) => {
     const { name } = req.body;
     if (!name) {
@@ -54,18 +50,14 @@ const createCollection = async (req, res, next) => {
 };
 
 // @desc    Update a collection (rename)
-// @route   PUT /api/collections/:id
-// @access  Protected
 const updateCollection = async (req, res, next) => {
     const { name } = req.body;
     const { id } = req.params;
     try {
-        // Ensure the collection belongs to the user
         const [collections] = await db.query('SELECT user_id FROM collections WHERE id = ?', [id]);
         if (collections.length === 0 || collections[0].user_id !== req.user.id) {
             return res.status(403).json({ message: 'Not authorized' });
         }
-
         await db.query('UPDATE collections SET name = ? WHERE id = ?', [name, id]);
         res.status(204).send();
     } catch (error) {
@@ -74,8 +66,6 @@ const updateCollection = async (req, res, next) => {
 };
 
 // @desc    Delete a collection
-// @route   DELETE /api/collections/:id
-// @access  Protected
 const deleteCollection = async (req, res, next) => {
     const { id } = req.params;
      try {
@@ -91,18 +81,19 @@ const deleteCollection = async (req, res, next) => {
 };
 
 // @desc    Add article to a collection
-// @route   POST /api/collections/:id/articles
-// @access  Protected
 const addArticleToCollection = async (req, res, next) => {
     const { articleId } = req.body;
     const { id: collectionId } = req.params;
     try {
-        // Authorization check
         const [collections] = await db.query('SELECT user_id FROM collections WHERE id = ?', [collectionId]);
         if (collections.length === 0 || collections[0].user_id !== req.user.id) {
             return res.status(403).json({ message: 'Not authorized' });
         }
         await db.query('INSERT IGNORE INTO collection_articles (collection_id, article_id) VALUES (?, ?)', [collectionId, articleId]);
+        
+        // Log user action
+        logUserAction(req.user.id, 'save_article', articleId, { collectionId });
+
         res.status(201).send();
     } catch (error) {
         next(error);
@@ -110,8 +101,6 @@ const addArticleToCollection = async (req, res, next) => {
 };
 
 // @desc    Remove article from a collection
-// @route   DELETE /api/collections/:id/articles/:articleId
-// @access  Protected
 const removeArticleFromCollection = async (req, res, next) => {
     const { id: collectionId, articleId } = req.params;
     try {
@@ -127,10 +116,6 @@ const removeArticleFromCollection = async (req, res, next) => {
 };
 
 module.exports = {
-    getCollections,
-    createCollection,
-    updateCollection,
-    deleteCollection,
-    addArticleToCollection,
-    removeArticleFromCollection,
+    getCollections, createCollection, updateCollection, deleteCollection,
+    addArticleToCollection, removeArticleFromCollection,
 };

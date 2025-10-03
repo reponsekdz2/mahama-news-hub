@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { getAnalyticsSummary, getTrendingArticles } = require('../controllers/analyticsController');
+const { getAdvancedAnalytics, getTrendingArticles } = require('../controllers/analyticsController');
 const { adminProtect } = require('../middleware/authMiddleware');
 
 /**
- * @route   GET api/analytics
- * @desc    Get a summary of site analytics
+ * @route   GET api/analytics/advanced
+ * @desc    Get a summary of advanced site analytics with a date range
  * @access  Admin
  */
-router.get('/', adminProtect, getAnalyticsSummary);
+router.get('/advanced', adminProtect, getAdvancedAnalytics);
 
 /**
  * @route   GET api/analytics/trending

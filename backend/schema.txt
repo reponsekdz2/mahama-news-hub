@@ -5,9 +5,9 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role ENUM('user', 'admin') DEFAULT 'user',
-    last_login TIMESTAMP NULL, -- Added last login tracking
+    last_login TIMESTAMP NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_email (email) -- Added index for faster login
+    INDEX idx_email (email)
 );
 
 -- User Preferences Table
@@ -16,7 +16,7 @@ CREATE TABLE user_preferences (
     theme ENUM('light', 'dark') DEFAULT 'dark',
     accentColor VARCHAR(50) DEFAULT 'red',
     language ENUM('en', 'fr', 'rw') DEFAULT 'en',
-    content_preferences JSON, -- Stores an array of preferred categories, e.g., ['Technology', 'Sport']
+    content_preferences JSON,
     newsletter_subscribed BOOLEAN DEFAULT false,
     comment_notifications_enabled BOOLEAN DEFAULT true,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -31,22 +31,20 @@ CREATE TABLE articles (
     image_url VARCHAR(255),
     video_url VARCHAR(255),
     author_id INT NOT NULL,
-    status ENUM('draft', 'published') DEFAULT 'published' NOT NULL, -- Added status
+    status ENUM('draft', 'published') DEFAULT 'published' NOT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_category (category), -- Added indexes for filtering
+    INDEX idx_category (category),
     INDEX idx_author_id (author_id),
     INDEX idx_status (status)
 );
 
--- Tags Table (New)
+-- Tags & Joins
 CREATE TABLE tags (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
     INDEX idx_name (name)
 );
-
--- Article Tags Join Table (New)
 CREATE TABLE article_tags (
     article_id INT NOT NULL,
     tag_id INT NOT NULL,
@@ -55,19 +53,17 @@ CREATE TABLE article_tags (
     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
--- Article Views Table
+-- Engagement Tables
 CREATE TABLE article_views (
     id INT AUTO_INCREMENT PRIMARY KEY,
     article_id INT NOT NULL,
-    user_id INT, -- Can be null for anonymous views
+    user_id INT, 
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY user_article_view (user_id, article_id),
     FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_article_id (article_id) -- Added index
+    INDEX idx_article_id_created (article_id, createdAt)
 );
-
--- Article Likes Table
 CREATE TABLE article_likes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -76,10 +72,8 @@ CREATE TABLE article_likes (
     UNIQUE KEY user_article_like (user_id, article_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
-    INDEX idx_article_id (article_id) -- Added index
+    INDEX idx_article_id (article_id)
 );
-
--- Comments Table
 CREATE TABLE comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     content TEXT NOT NULL,
@@ -88,11 +82,11 @@ CREATE TABLE comments (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_article_id (article_id), -- Added indexes
+    INDEX idx_article_id (article_id),
     INDEX idx_user_id (user_id)
 );
 
--- Collections Table (for saved articles)
+-- Collections (Saved Articles)
 CREATE TABLE collections (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -100,8 +94,6 @@ CREATE TABLE collections (
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-
--- Collection Articles (many-to-many relationship)
 CREATE TABLE collection_articles (
     collection_id INT NOT NULL,
     article_id INT NOT NULL,
@@ -110,7 +102,7 @@ CREATE TABLE collection_articles (
     FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
 );
 
--- Advertisements Table
+-- Advertisements
 CREATE TABLE advertisements (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -120,16 +112,12 @@ CREATE TABLE advertisements (
     placement ENUM('in-feed', 'sidebar') DEFAULT 'in-feed',
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Ad Impressions Table
 CREATE TABLE ad_impressions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ad_id INT NOT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ad_id) REFERENCES advertisements(id) ON DELETE CASCADE
 );
-
--- Ad Clicks Table
 CREATE TABLE ad_clicks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ad_id INT NOT NULL,
@@ -137,22 +125,45 @@ CREATE TABLE ad_clicks (
     FOREIGN KEY (ad_id) REFERENCES advertisements(id) ON DELETE CASCADE
 );
 
--- Newsletter Subscriptions Table (for guests and users)
+-- Subscriptions & Notifications
 CREATE TABLE newsletter_subscriptions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Notifications Table
 CREATE TABLE notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL, -- The user who receives the notification
-    actor_name VARCHAR(255) NOT NULL, -- The user who triggered the notification
+    user_id INT NOT NULL,
+    actor_name VARCHAR(255) NOT NULL,
     type ENUM('new_comment') NOT NULL,
     related_article_id INT NOT NULL,
     is_read BOOLEAN DEFAULT false,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (related_article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+
+-- NEW LOGGING TABLES --
+CREATE TABLE user_actions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    action_type ENUM('view', 'like', 'unlike', 'comment', 'save_article', 'share_article') NOT NULL,
+    target_id INT, -- e.g., article_id
+    details JSON,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_action_time (user_id, createdAt),
+    INDEX idx_action_type_time (action_type, createdAt)
+);
+
+CREATE TABLE admin_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    admin_user_id INT NOT NULL,
+    action_type ENUM('create', 'update', 'delete') NOT NULL,
+    target_type VARCHAR(50) NOT NULL, -- e.g., 'article', 'user', 'ad'
+    target_id INT,
+    details JSON,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_admin_action (admin_user_id, createdAt)
 );

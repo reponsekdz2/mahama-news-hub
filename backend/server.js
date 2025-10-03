@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const errorHandler = require('./middleware/errorHandler');
+const upload = require('./middleware/uploadMiddleware'); // Centralized upload middleware
 
 const app = express();
 

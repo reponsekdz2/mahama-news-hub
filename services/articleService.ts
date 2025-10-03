@@ -21,7 +21,6 @@ export const fetchArticlesWithAds = async (topic: string, token?: string): Promi
     const response = await fetch(`${API_URL}?topic=${encodeURIComponent(topic)}`, { headers });
     const data = await handleResponse(response);
     
-    // The backend sends tags as a comma-separated string, so we parse it here.
     const articlesWithTags = data.articles.map((article: any) => ({
         ...article,
         tags: article.tags ? article.tags.split(',').map((t:string) => t.trim()) : []
@@ -30,7 +29,6 @@ export const fetchArticlesWithAds = async (topic: string, token?: string): Promi
     return { articles: articlesWithTags, ads: data.ads };
 };
 
-
 export const getArticleById = async (id: string, token?: string): Promise<Article> => {
     const headers: HeadersInit = {};
     if (token) {
@@ -38,7 +36,6 @@ export const getArticleById = async (id: string, token?: string): Promise<Articl
     }
     const response = await fetch(`${API_URL}/${id}`, { headers });
     const article = await handleResponse(response);
-    // Also parse tags for the single article view
     if (article.tags && typeof article.tags === 'string') {
         article.tags = article.tags.split(',').map((t:string) => t.trim());
     } else {
@@ -106,6 +103,21 @@ export const recordView = async (articleId: string, token?: string): Promise<voi
         });
     } catch (error) {
         console.warn('Failed to record view', error);
+    }
+};
+
+export const trackShare = async (articleId: string, platform: string, token: string): Promise<void> => {
+    try {
+        await fetch(`${API_URL}/${articleId}/share`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ platform })
+        });
+    } catch (error) {
+        console.warn('Failed to track share', error);
     }
 };
 

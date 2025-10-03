@@ -3,12 +3,14 @@ import { useLanguage, CATEGORIES } from '../contexts/LanguageContext.tsx';
 import { useSettings, Theme } from '../contexts/SettingsContext.tsx';
 import { subscribeToNewsletter } from '../services/userService.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
+import TrendingArticles from './TrendingArticles.tsx';
 
 interface FooterProps {
   onTopicChange: (topic: string) => void;
+  onArticleSelect: (articleId: string) => void;
 }
 
-const Footer: React.FC<FooterProps> = ({ onTopicChange }) => {
+const Footer: React.FC<FooterProps> = ({ onTopicChange, onArticleSelect }) => {
   const { t, language, setLanguage } = useLanguage();
   const { theme, setTheme } = useSettings();
   const { user } = useAuth();
@@ -73,23 +75,19 @@ const Footer: React.FC<FooterProps> = ({ onTopicChange }) => {
                 </ul>
             </div>
              <div>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-wider uppercase">Resources</h3>
-                <ul className="mt-4 space-y-4">
-                    <li><a href="/rss.xml" target="_blank" className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">RSS Feed</a></li>
-                    <li><a href="/sitemap.xml" target="_blank" className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Sitemap</a></li>
-                    <li>
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white tracking-wider uppercase pt-4">Subscribe</h4>
-                        <p className="mt-4 text-base text-gray-500 dark:text-gray-400">The latest news, sent to your inbox weekly.</p>
-                        <form className="mt-4" onSubmit={handleSubscribe}>
-                          <label htmlFor="email-address" className="sr-only">Email address</label>
-                          <input type="email" value={email} onChange={e => setEmail(e.target.value)} name="email-address" id="email-address" autoComplete="email" required className="appearance-none min-w-0 w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-4 text-base text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-accent-500 focus:border-accent-500" placeholder="Enter your email" />
-                           <button type="submit" disabled={isSubscribing} className="mt-3 w-full bg-accent-600 flex items-center justify-center rounded-md border border-transparent py-2 px-4 text-base font-medium text-white hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 disabled:opacity-50">
-                              Subscribe
-                            </button>
-                        </form>
-                         {subscribeMessage && <p className={`mt-2 text-sm ${subscribeMessage.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{subscribeMessage.text}</p>}
-                    </li>
-                </ul>
+                <TrendingArticles onArticleSelect={onArticleSelect} />
+                <div className="mt-6">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white tracking-wider uppercase">Subscribe</h4>
+                    <p className="mt-4 text-base text-gray-500 dark:text-gray-400">The latest news, sent to your inbox weekly.</p>
+                    <form className="mt-4" onSubmit={handleSubscribe}>
+                      <label htmlFor="email-address" className="sr-only">Email address</label>
+                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} name="email-address" id="email-address" autoComplete="email" required className="appearance-none min-w-0 w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-4 text-base text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-accent-500 focus:border-accent-500" placeholder="Enter your email" />
+                       <button type="submit" disabled={isSubscribing} className="mt-3 w-full bg-accent-600 flex items-center justify-center rounded-md border border-transparent py-2 px-4 text-base font-medium text-white hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 disabled:opacity-50">
+                          Subscribe
+                        </button>
+                    </form>
+                     {subscribeMessage && <p className={`mt-2 text-sm ${subscribeMessage.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{subscribeMessage.text}</p>}
+                </div>
               </div>
           </div>
         </div>

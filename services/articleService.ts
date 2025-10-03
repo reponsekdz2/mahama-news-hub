@@ -36,6 +36,31 @@ export const fetchArticlesWithAds = async (topic: string, filters: SearchFilters
     return { articles: articlesWithTags, ads: data.ads };
 };
 
+export const searchArticles = async (query: string, token?: string): Promise<Pick<Article, 'id' | 'title'>[]> => {
+    const headers: HeadersInit = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const params = new URLSearchParams({ q: query });
+    const response = await fetch(`${API_URL}/search-suggestions?${params.toString()}`, { headers });
+    return handleResponse(response);
+};
+
+export const fetchRandomArticle = async (token?: string): Promise<Article | null> => {
+     const headers: HeadersInit = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_URL}/random`, { headers });
+    const article = await handleResponse(response);
+    if (article.tags && typeof article.tags === 'string') {
+        article.tags = article.tags.split(',').map((t:string) => t.trim());
+    } else {
+        article.tags = [];
+    }
+    return article;
+};
+
 export const getArticleById = async (id: string, token?: string): Promise<Article> => {
     const headers: HeadersInit = {};
     if (token) {

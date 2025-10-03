@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext.tsx';
 import { likeArticle, unlikeArticle } from '../services/articleService.ts';
 import { useLibrary } from '../contexts/LibraryContext.tsx';
 import SaveToCollectionModal from './SaveToCollectionModal.tsx';
+import { calculateReadingTime } from '../utils/readingTime.ts';
+import { useLanguage } from '../contexts/LanguageContext.tsx';
 
 interface MainArticleProps {
   article: Article;
@@ -12,6 +14,7 @@ interface MainArticleProps {
 
 const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
   const { isLoggedIn, user } = useAuth();
+  const { t } = useLanguage();
   const { isArticleInLibrary } = useLibrary();
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   
@@ -24,6 +27,7 @@ const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
   }, [article.isLiked, article.likeCount]);
   
   const articleIsInLibrary = isArticleInLibrary(article.id);
+  const readingTime = calculateReadingTime(article.content);
 
   const handleLike = async () => {
     if (!isLoggedIn || !user?.token) return;
@@ -87,7 +91,7 @@ const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
             </div>
             <div className="mt-6">
               <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                  By {article.authorName || 'Staff'}
+                  By {article.authorName || 'Staff'} &middot; {readingTime} {t('minRead')}
               </div>
               <div className="flex items-center justify-between">
                 <button

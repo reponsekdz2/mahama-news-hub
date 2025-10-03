@@ -94,6 +94,51 @@ const getArticles = async (req, res, next) => {
     }
 };
 
+const getSearchSuggestions = async (req, res, next) => {
+    try {
+        const { q } = req.query;
+        if (!q) {
+            return res.json([]);
+        }
+
+        const searchTerm = `%${q}%`;
+        const [articles] = await db.query(
+            `SELECT id, title FROM articles WHERE status = 'published' AND title LIKE ? ORDER BY createdAt DESC LIMIT 5`,
+            [searchTerm]
+        );
+        res.json(articles);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getRandomArticle = async (req, res, next) => {
+    try {
+        // This query is optimized for performance on large tables
+        const [articles] = await db.query(`
+            SELECT 
+                a.id, a.title, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
+                u.name as authorName,
+                (SELECT COUNT(*) FROM article_views WHERE article_id = a.id) as viewCount,
+                (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as likeCount,
+                GROUP_CONCAT(t.name SEPARATOR ', ') as tags
+            FROM articles AS a 
+            JOIN (SELECT id FROM articles WHERE status = 'published' ORDER BY RAND() LIMIT 1) AS r ON a.id = r.id
+            JOIN users u ON a.author_id = u.id
+            LEFT JOIN article_tags at ON a.id = at.article_id
+            LEFT JOIN tags t ON at.tag_id = t.id
+            GROUP BY a.id;
+        `);
+
+        if (articles.length === 0) {
+            return res.status(404).json({ message: 'No articles found' });
+        }
+        res.json(articles[0]);
+    } catch (error) {
+        next(error);
+    }
+};
+
 const getArticleById = async (req, res, next) => {
     try {
         const [articles] = await db.query(`
@@ -287,5 +332,5 @@ const addCommentToArticle = async (req, res, next) => {
 module.exports = {
     getArticles, getArticleById, createArticle, updateArticle, deleteArticle,
     likeArticle, unlikeArticle, recordView, getCommentsForArticle, addCommentToArticle,
-    getRelatedArticles, recordShare,
+    getRelatedArticles, recordShare, getSearchSuggestions, getRandomArticle
 };

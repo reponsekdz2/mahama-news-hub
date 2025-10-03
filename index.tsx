@@ -5,6 +5,7 @@ import { SettingsProvider } from './contexts/SettingsContext.tsx';
 import { LanguageProvider } from './contexts/LanguageContext.tsx';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 import { LibraryProvider } from './contexts/LibraryContext.tsx';
+import ErrorBoundary from './components/ErrorBoundary.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -14,14 +15,16 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <SettingsProvider>
-        <LanguageProvider>
-          <LibraryProvider>
-            <App />
-          </LibraryProvider>
-        </LanguageProvider>
-      </SettingsProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <SettingsProvider>
+          <LanguageProvider>
+            <LibraryProvider>
+              <App />
+            </LibraryProvider>
+          </LanguageProvider>
+        </SettingsProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

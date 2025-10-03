@@ -7,6 +7,7 @@ import useSpeechSynthesis from '../hooks/useSpeechSynthesis.ts';
 import ArticleActions from './ArticleActions.tsx';
 import RelatedArticles from './RelatedArticles.tsx';
 import { useLanguage } from '../contexts/LanguageContext.tsx';
+import { calculateReadingTime } from '../utils/readingTime.ts';
 
 interface ArticleModalProps {
   article: Article;
@@ -20,6 +21,8 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [readProgress, setReadProgress] = useState(0);
   const [isReaderMode, setIsReaderMode] = useState(false);
+  
+  const readingTime = calculateReadingTime(article.content);
 
   const handleSpeak = () => {
     if (isSpeaking && !isPaused) {
@@ -82,7 +85,10 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) => {
         </div>
 
         <header className={`p-4 border-b dark:border-gray-700 flex justify-between items-center flex-shrink-0 transition-all duration-300 ${isReaderMode ? 'opacity-0 h-0 p-0 border-none' : ''}`}>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate pr-4">{article.title}</h2>
+          <div className="flex-1 truncate pr-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate">{article.title}</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{readingTime} {t('minRead')}</p>
+          </div>
           <div className="flex items-center space-x-2">
             <button onClick={handleSpeak} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700" title={isSpeaking && !isPaused ? "Pause" : "Read aloud"}>
               {isSpeaking && !isPaused ? (

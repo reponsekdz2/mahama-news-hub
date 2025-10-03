@@ -14,12 +14,13 @@ import AdBanner from './components/AdBanner.tsx';
 import LibraryPage from './components/LibraryPage.tsx';
 import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
 import ErrorDisplay from './components/ErrorDisplay.tsx';
+import SearchOverlay from './components/SearchOverlay.tsx';
 import { useAuth } from './contexts/AuthContext.tsx';
 import { useLanguage } from './contexts/LanguageContext.tsx';
 import { useLibrary } from './contexts/LibraryContext.tsx';
 import { useSettings } from './contexts/SettingsContext.tsx';
 import { Article, Advertisement } from './types.ts';
-import { fetchArticlesWithAds } from './services/articleService.ts';
+import { fetchArticlesWithAds, getArticleById, fetchRandomArticle } from './services/articleService.ts';
 import { fetchPersonalizedNews } from './services/geminiService.ts';
 import { fetchReadingHistory } from './services/userService.ts';
 
@@ -37,11 +38,12 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<View>('news');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({ dateRange: 'all', sortBy: 'newest' });
   
-  const { user, isLoggedIn, login } = useAuth();
+  const { user, isLoggedIn } = useAuth();
   const { t, loadUserLanguage } = useLanguage();
   const { fetchLibrary, collections } = useLibrary();
   const { loadUserSettings } = useSettings();
@@ -124,6 +126,7 @@ const App: React.FC = () => {
   };
 
   const handleSearch = (query: string) => {
+    setIsSearchOpen(false);
     setView('news');
     setSelectedTopic(query); 
     setSearchQuery(query);
@@ -140,6 +143,28 @@ const App: React.FC = () => {
       if (targetView === 'library') setSelectedTopic('myLibrary');
       if (targetView === 'news') setSelectedTopic('Top Stories');
   }
+
+  const handleSelectTrendingArticle = async (articleId: string) => {
+    try {
+      const fullArticle = await getArticleById(articleId, user?.token);
+      setSelectedArticle(fullArticle);
+      window.scrollTo(0, 0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load article details.');
+    }
+  };
+
+  const handleSurpriseMe = async () => {
+    try {
+        const article = await fetchRandomArticle(user?.token);
+        if (article) {
+            setView('news'); // Ensure we are on the news view
+            setSelectedArticle(article); // Open the modal
+        }
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not find a surprising article for you.');
+    }
+  };
 
   const mainArticle = feedItems.length > 0 && !('isAd' in feedItems[0]) ? feedItems[0] as Article : null;
   const otherItems = mainArticle ? feedItems.slice(1) : feedItems;
@@ -202,7 +227,8 @@ const App: React.FC = () => {
       <Header
         selectedTopic={selectedTopic}
         onTopicChange={handleTopicChange}
-        onSearch={handleSearch}
+        onSearch={() => setIsSearchOpen(true)}
+        onSurpriseMe={handleSurpriseMe}
         onOpenLogin={() => setIsAuthModalOpen(true)}
         onNavigate={(target) => handleNavigation(target as 'admin' | 'settings')}
       />
@@ -211,11 +237,12 @@ const App: React.FC = () => {
         {renderView()}
       </main>
 
-      <Footer onTopicChange={handleTopicChange} />
+      <Footer onTopicChange={handleTopicChange} onArticleSelect={handleSelectTrendingArticle} />
       <BackToTopButton />
 
       {isAuthModalOpen && <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />}
       {selectedArticle && <ArticleModal article={selectedArticle} onClose={() => setSelectedArticle(null)} />}
+      {isSearchOpen && <SearchOverlay onClose={() => setIsSearchOpen(false)} onSearch={handleSearch} />}
     </div>
   );
 };

@@ -1,5 +1,7 @@
 {
   "name": "Mahama News TV",
   "description": "A personalized news hub powered by Gemini. Get the latest articles, customize your theme with accent colors, and share stories with ease.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

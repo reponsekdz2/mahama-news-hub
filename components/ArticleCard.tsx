@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext.tsx';
 import { useLibrary } from '../contexts/LibraryContext.tsx';
 import { likeArticle, unlikeArticle } from '../services/articleService.ts';
 import SaveToCollectionModal from './SaveToCollectionModal.tsx';
+import { calculateReadingTime } from '../utils/readingTime.ts';
+import { useLanguage } from '../contexts/LanguageContext.tsx';
 
 interface ArticleCardProps {
   article: Article;
@@ -12,6 +14,7 @@ interface ArticleCardProps {
 
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
   const { isLoggedIn, user } = useAuth();
+  const { t } = useLanguage();
   const { isArticleInLibrary } = useLibrary();
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
 
@@ -24,6 +27,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
   }, [article.isLiked, article.likeCount]);
   
   const articleIsInLibrary = isArticleInLibrary(article.id);
+  const readingTime = calculateReadingTime(article.content);
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -122,7 +126,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
           <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex-grow flex flex-col justify-end">
             <div className="flex justify-between items-center">
                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  By <strong>{article.authorName || 'Staff'}</strong>
+                  By <strong>{article.authorName || 'Staff'}</strong> &middot; {readingTime} {t('minRead')}
                 </div>
               <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
                 <div className="flex items-center space-x-1">

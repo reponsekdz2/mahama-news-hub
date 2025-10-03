@@ -12,13 +12,17 @@ const {
     getCommentsForArticle,
     addCommentToArticle,
     getRelatedArticles,
-    recordShare, // New controller for sharing
+    recordShare,
+    getSearchSuggestions,
+    getRandomArticle,
 } = require('../controllers/articleController');
 const { protect, adminProtect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
 // Public routes
-router.get('/', getArticles); 
+router.get('/', getArticles);
+router.get('/search-suggestions', getSearchSuggestions);
+router.get('/random', getRandomArticle);
 router.get('/:id', getArticleById);
 router.get('/:id/related', getRelatedArticles);
 router.post('/:id/view', recordView);

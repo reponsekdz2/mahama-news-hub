@@ -104,6 +104,35 @@ const getArticleById = async (req, res, next) => {
     }
 };
 
+// @desc    Get related articles
+// @route   GET /api/articles/:id/related
+// @access  Public
+const getRelatedArticles = async (req, res, next) => {
+    const articleId = req.params.id;
+    try {
+        // First, get the category of the current article
+        const [currentArticle] = await db.query('SELECT category FROM articles WHERE id = ?', [articleId]);
+        if (currentArticle.length === 0) {
+            return res.status(404).json({ message: 'Article not found' });
+        }
+        const category = currentArticle[0].category;
+
+        // Now, fetch other articles from the same category
+        const [relatedArticles] = await db.query(`
+            SELECT id, title, image_url as imageUrl, category 
+            FROM articles 
+            WHERE category = ? AND id != ? AND status = 'published'
+            ORDER BY createdAt DESC
+            LIMIT 3
+        `, [category, articleId]);
+
+        res.json(relatedArticles);
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 // @desc    Create a new article
 // @route   POST /api/articles
 // @access  Admin
@@ -297,5 +326,6 @@ module.exports = {
     unlikeArticle,
     recordView,
     getCommentsForArticle,
-    addCommentToArticle
+    addCommentToArticle,
+    getRelatedArticles
 };

@@ -1,13 +1,8 @@
 import React, { useState } from 'react';
-// Fix: Add .ts extension to module import
 import { Article } from '../types.ts';
-// Fix: Add .tsx extension to module import
 import { useAuth } from '../contexts/AuthContext.tsx';
-// Fix: Add .tsx extension to module import
 import { useLibrary } from '../contexts/LibraryContext.tsx';
-// Fix: Add .ts extension to module import
 import { likeArticle, unlikeArticle } from '../services/articleService.ts';
-// Fix: Add .tsx extension to module import
 import SaveToCollectionModal from './SaveToCollectionModal.tsx';
 
 interface ArticleCardProps {
@@ -31,22 +26,25 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
   const articleIsInLibrary = isArticleInLibrary(article.id);
 
   const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent modal from opening
+    e.stopPropagation(); 
     if (!isLoggedIn || !user?.token) return;
+
+    const originalIsLiked = isLiked;
+    const originalLikeCount = likeCount;
 
     setIsLiked(!isLiked);
     setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
 
     try {
-      if (isLiked) {
+      if (originalIsLiked) {
         await unlikeArticle(article.id, user.token);
       } else {
         await likeArticle(article.id, user.token);
       }
     } catch (error) {
       console.error("Failed to update like status", error);
-      setIsLiked(isLiked);
-      setLikeCount(likeCount);
+      setIsLiked(originalIsLiked);
+      setLikeCount(originalLikeCount);
     }
   };
   
@@ -55,7 +53,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
       setIsCollectionModalOpen(true);
   }
 
-  // Helper to strip HTML and truncate
   const createSnippet = (html: string, length: number) => {
     const div = document.createElement('div');
     div.innerHTML = html;
@@ -70,14 +67,47 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
       {isCollectionModalOpen && <SaveToCollectionModal article={article} onClose={() => setIsCollectionModalOpen(false)} />}
       <div
         onClick={onReadMore}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col cursor-pointer transition-transform duration-300 hover:scale-105 hover:shadow-xl"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col cursor-pointer transition-all duration-300 hover:shadow-2xl group"
       >
-        <img className="h-48 w-full object-cover" src={article.imageUrl} alt={article.title} />
+        {/* Image container */}
+        <div className="relative">
+          <img className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-110" src={article.imageUrl} alt={article.title} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+          
+          <div className="absolute top-2 right-2 flex space-x-2">
+            {isLoggedIn && (
+                <button
+                    onClick={handleSaveClick}
+                    className="p-2 rounded-full bg-black/30 text-white hover:bg-black/50 backdrop-blur-sm transition-colors"
+                    aria-label={articleIsInLibrary ? 'Manage collections for this article' : 'Save article'}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.125L5 18V4z" className={articleIsInLibrary ? 'text-accent-400' : ''} />
+                    </svg>
+                </button>
+            )}
+             <button
+                onClick={handleLike}
+                disabled={!isLoggedIn}
+                className="p-2 rounded-full bg-black/30 text-white hover:bg-black/50 backdrop-blur-sm transition-colors disabled:opacity-60"
+                aria-label={isLiked ? 'Unlike article' : 'Like article'}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-colors ${isLiked ? 'text-accent-400' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                </svg>
+            </button>
+          </div>
+
+          <div className="absolute bottom-0 left-0 p-4">
+              <p className="text-xs text-white bg-accent-500 font-semibold uppercase px-2 py-1 rounded-md inline-block">{article.category}</p>
+              <h3 className="mt-2 font-bold text-lg text-white leading-tight drop-shadow-md">{article.title}</h3>
+          </div>
+        </div>
+        
+        {/* Content container */}
         <div className="p-4 flex flex-col flex-grow">
           <div>
-            <p className="text-xs text-accent-500 font-semibold uppercase">{article.category}</p>
-            <h3 className="mt-1 font-bold text-lg text-gray-900 dark:text-white leading-tight truncate">{article.title}</h3>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{snippet}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{snippet}</p>
              {article.tags && article.tags.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {article.tags.map(tag => (
@@ -90,38 +120,20 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
           </div>
 
           <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex-grow flex flex-col justify-end">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              By {article.authorName || 'Staff'}
-            </div>
             <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center text-gray-500 dark:text-gray-400 text-xs space-x-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.27 6.957 15.425 5 12 5c-1.465 0-2.858.48-4.001 1.343L3.707 2.293zM12 15c-1.465 0-2.858-.48-4.001-1.343L6.293 15.364A10.009 10.009 0 0112 15zm-2.121-3.121A3 3 0 0112 11c1.103 0 2.084.585 2.658 1.442l-2.779 2.779A3.004 3.004 0 019.879 11.879z" clipRule="evenodd" /></svg>
+               <div className="text-xs text-gray-500 dark:text-gray-400">
+                  By <strong>{article.authorName || 'Staff'}</strong>
+                </div>
+              <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex items-center space-x-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" /></svg>
                   <span>{article.viewCount}</span>
                 </div>
-                <button
-                  onClick={handleLike}
-                  disabled={!isLoggedIn}
-                  className="flex items-center text-gray-500 dark:text-gray-400 text-xs space-x-1 disabled:opacity-50"
-                  aria-label={isLiked ? 'Unlike article' : 'Like article'}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transition-colors ${isLiked ? 'text-accent-500' : 'text-gray-400'}`} viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                  </svg>
+                <div className="flex items-center space-x-1">
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
                   <span>{likeCount}</span>
-                </button>
+                </div>
               </div>
-              {isLoggedIn && (
-                <button
-                  onClick={handleSaveClick}
-                  className="text-gray-400 hover:text-accent-500"
-                  aria-label={articleIsInLibrary ? 'Manage collections for this article' : 'Save article'}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.125L5 18V4z" className={articleIsInLibrary ? 'text-accent-500' : ''} />
-                  </svg>
-                </button>
-              )}
             </div>
           </div>
         </div>

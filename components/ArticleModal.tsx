@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Article } from '../types.ts';
 import AIToolsPanel from './AIToolsPanel.tsx';
 import CommentsSection from './CommentsSection.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import useSpeechSynthesis from '../hooks/useSpeechSynthesis.ts';
+import ArticleActions from './ArticleActions.tsx';
+import RelatedArticles from './RelatedArticles.tsx';
 
 interface ArticleModalProps {
   article: Article;
@@ -13,6 +15,8 @@ interface ArticleModalProps {
 const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) => {
   const { isLoggedIn } = useAuth();
   const { isSpeaking, isPaused, speak, pause, cancel } = useSpeechSynthesis();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [readProgress, setReadProgress] = useState(0);
 
   const handleSpeak = () => {
     if (isSpeaking && !isPaused) {
@@ -23,16 +27,42 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) => {
     }
   };
 
+  const handleScroll = () => {
+    if (contentRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
+        if (scrollHeight <= clientHeight) {
+            setReadProgress(100);
+            return;
+        }
+        const progress = (scrollTop / (scrollHeight - clientHeight)) * 100;
+        setReadProgress(progress);
+    }
+  };
+
   // Ensure speech is stopped when modal is closed
   React.useEffect(() => {
     return () => {
       cancel();
     };
   }, [cancel]);
+  
+  // Attach scroll listener
+  useEffect(() => {
+    const contentElement = contentRef.current;
+    if (contentElement) {
+        contentElement.addEventListener('scroll', handleScroll);
+        return () => contentElement.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center p-4 transition-opacity" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        {/* Reading Progress Bar */}
+        <div className="w-full bg-gray-200 dark:bg-gray-700 h-1 rounded-t-lg">
+            <div className="bg-accent-500 h-1" style={{ width: `${readProgress}%` }}></div>
+        </div>
+
         <header className="p-4 border-b dark:border-gray-700 flex justify-between items-center flex-shrink-0">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate pr-4">{article.title}</h2>
           <div className="flex items-center space-x-2">
@@ -49,8 +79,9 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) => {
           </div>
         </header>
         
-        <div className="flex-grow overflow-y-auto p-6">
+        <div ref={contentRef} className="flex-grow overflow-y-auto p-6">
           <img src={article.imageUrl} alt={article.title} className="w-full h-64 object-cover rounded-lg mb-6" />
+          <ArticleActions article={article} />
           <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300" dangerouslySetInnerHTML={{ __html: article.content }} />
           
           {article.tags && article.tags.length > 0 && (
@@ -66,6 +97,8 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) => {
           {isLoggedIn && <AIToolsPanel article={article} />}
           
           <CommentsSection articleId={article.id} />
+
+          <RelatedArticles currentArticleId={article.id} category={article.category} onArticleClick={() => { /* Not needed here as a full reload of modal is implied */ }} />
         </div>
       </div>
     </div>

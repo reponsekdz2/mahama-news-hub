@@ -94,18 +94,27 @@ const AdManagement: React.FC = () => {
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Title</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Image</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Title & Link</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Impressions / Clicks</th>
+                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Stats (I/C)</th>
                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         {ads.map(ad => (
                             <tr key={ad.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white max-w-xs truncate" title={ad.title}>{ad.title}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <img src={ad.imageUrl} alt={ad.title} className="h-10 w-16 object-cover rounded"/>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm max-w-xs">
+                                    <div className="font-medium text-gray-900 dark:text-white truncate" title={ad.title}>{ad.title}</div>
+                                    <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" className="text-gray-500 dark:text-gray-400 hover:underline truncate" title={ad.linkUrl}>
+                                        {ad.linkUrl}
+                                    </a>
+                                </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${ad.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${ad.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                       {ad.status}
                                     </span>
                                 </td>

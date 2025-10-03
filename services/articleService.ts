@@ -47,6 +47,11 @@ export const getArticleById = async (id: string, token?: string): Promise<Articl
     return article;
 }
 
+export const fetchRelatedArticles = async (id: string): Promise<Article[]> => {
+    const response = await fetch(`${API_URL}/${id}/related`);
+    return handleResponse(response);
+}
+
 export const createArticle = async (formData: FormData, token: string): Promise<Article> => {
     const response = await fetch(API_URL, {
         method: 'POST',

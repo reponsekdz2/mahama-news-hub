@@ -33,6 +33,7 @@ export interface Article {
   sources?: { title: string; uri: string }[];
   tags?: string[];
   status?: 'draft' | 'published';
+  relatedArticles?: Article[];
 }
 
 export interface Advertisement {

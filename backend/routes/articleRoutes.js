@@ -10,7 +10,8 @@ const {
     unlikeArticle,
     recordView,
     getCommentsForArticle,
-    addCommentToArticle
+    addCommentToArticle,
+    getRelatedArticles
 } = require('../controllers/articleController');
 const { protect, adminProtect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -18,6 +19,7 @@ const upload = require('../middleware/uploadMiddleware');
 // Public routes
 router.get('/', getArticles); 
 router.get('/:id', getArticleById);
+router.get('/:id/related', getRelatedArticles); // New route for related articles
 router.post('/:id/view', recordView);
 router.get('/:id/comments', getCommentsForArticle);
 

@@ -21,7 +21,6 @@ export interface UserPreferences {
 export interface Article {
   id: string;
   title: string;
-  summary: string;
   content: string;
   category: string;
   imageUrl: string;
@@ -30,10 +29,8 @@ export interface Article {
   viewCount: number;
   likeCount: number;
   isLiked?: boolean; // Optional as it might depend on the user context
-  sources?: { title: string; uri: string }[];
   tags?: string[];
   status?: 'draft' | 'published';
-  relatedArticles?: Article[];
 }
 
 export interface Advertisement {

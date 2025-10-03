@@ -1,7 +1,4 @@
-
-
 import React, { useState, useEffect } from 'react';
-// Fix: Add .tsx extension to module import
 import { useLanguage } from '../contexts/LanguageContext.tsx';
 
 const BackToTopButton: React.FC = () => {

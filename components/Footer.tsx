@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLanguage, CATEGORIES } from '../contexts/LanguageContext.tsx';
 import { useSettings, Theme } from '../contexts/SettingsContext.tsx';
 import { subscribeToNewsletter } from '../services/userService.ts';
-import { fetchTrendingArticles } from '../services/analyticsService.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
-import { Article } from '../types.ts';
 
 interface FooterProps {
   onTopicChange: (topic: string) => void;

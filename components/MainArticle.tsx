@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Article } from '../types.ts';
-import { useLanguage } from '../contexts/LanguageContext.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { likeArticle, unlikeArticle } from '../services/articleService.ts';
 import { useLibrary } from '../contexts/LibraryContext.tsx';

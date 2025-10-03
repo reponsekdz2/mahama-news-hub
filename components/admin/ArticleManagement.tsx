@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Article } from '../../types.ts';
-// Fix: Use fetchArticlesWithAds as fetchArticles is not an exported member.
 import { fetchArticlesWithAds, createArticle, updateArticle, deleteArticle } from '../../services/articleService.ts';
 import { generateArticleWithAI } from '../../services/geminiService.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
@@ -50,7 +49,6 @@ const ArticleManagement: React.FC = () => {
     const loadArticles = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Fix: Destructure 'articles' from the response of 'fetchArticlesWithAds'.
             const { articles } = await fetchArticlesWithAds('Top Stories', user?.token);
             setArticles(articles);
         } catch (err) {

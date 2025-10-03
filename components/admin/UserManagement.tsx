@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-// Fix: Add .ts extension to module import
 import { User } from '../../types.ts';
-// Fix: Add .ts extension to module import
 import { fetchUsers, updateUserRole, deleteUser } from '../../services/adminService.ts';
-// Fix: Add .tsx extension to module import
 import { useAuth } from '../../contexts/AuthContext.tsx';
-// Fix: Add .tsx extension to module import
 import Spinner from '../Spinner.tsx';
 
 const UserManagement: React.FC = () => {

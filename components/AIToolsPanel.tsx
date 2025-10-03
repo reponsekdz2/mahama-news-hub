@@ -41,7 +41,8 @@ const AIToolsPanel: React.FC<AIToolsPanelProps> = ({ article }) => {
         setError(null);
         try {
             const result = await translateArticleContent({ title: article.title, summary: article.content }, targetLanguage);
-            setTranslatedContent(result);
+            // Fix: Map the `summary` property from the result to the `content` property of the state.
+            setTranslatedContent({ title: result.title, content: result.summary });
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to translate.');
         } finally {

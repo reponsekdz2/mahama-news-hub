@@ -1,5 +1,4 @@
 import { GoogleGenAI, Type } from "@google/genai";
-// Fix: Add .ts extension to module import
 import type { Article } from '../types.ts';
 
 const API_URL = '/api/gemini';

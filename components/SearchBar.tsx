@@ -1,7 +1,4 @@
-
-
 import React, { useState } from 'react';
-// Fix: Add .tsx extension to module import
 import { useLanguage } from '../contexts/LanguageContext.tsx';
 
 interface SearchBarProps {

@@ -10,7 +10,6 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // FIX: Initialize state using a public class field. This is a modern alternative to using a constructor and ensures `this.state` is correctly typed and available throughout the component.
   public state: ErrorBoundaryState = {
     hasError: false,
     error: undefined,

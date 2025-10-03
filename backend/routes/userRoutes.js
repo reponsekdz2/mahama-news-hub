@@ -13,6 +13,7 @@ const {
     subscribeToNewsletter,
     getNotifications,
     markNotificationsAsRead,
+    updateUserSubscription,
 } = require('../controllers/userController');
 const { protect, adminProtect } = require('../middleware/authMiddleware');
 
@@ -23,6 +24,7 @@ router.post('/subscribe-newsletter', subscribeToNewsletter);
 // --- Admin Routes ---
 router.get('/', adminProtect, getAllUsers);
 router.put('/:id/role', adminProtect, updateUserRole);
+router.put('/:id/subscription', adminProtect, updateUserSubscription); // New route
 router.delete('/:id', adminProtect, deleteUser);
 
 // --- Protected User Routes (for "me") ---

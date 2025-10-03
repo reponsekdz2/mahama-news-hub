@@ -1,10 +1,11 @@
-
-
 export interface User {
   id: string;
   name: string;
   email: string;
   role: 'user' | 'admin';
+  subscriptionStatus?: 'free' | 'premium' | 'trial';
+  subscriptionEndDate?: string;
+  pushSubscription?: object;
 }
 
 export interface AuthenticatedUser extends User {
@@ -51,7 +52,20 @@ export interface Article {
   isLiked?: boolean; // Optional as it might depend on the user context
   tags?: string[];
   status?: 'draft' | 'published';
+  isPremium?: boolean;
   poll?: Poll;
+  meta_title?: string;
+  meta_description?: string;
+}
+
+export interface AdCampaign {
+    id: string;
+    name: string;
+    start_date: string;
+    end_date: string;
+    budget_type: 'impressions' | 'clicks';
+    budget: number;
+    status: 'active' | 'inactive' | 'completed';
 }
 
 export interface Advertisement {
@@ -63,6 +77,8 @@ export interface Advertisement {
   placement: 'in-feed' | 'sidebar';
   impressions: number;
   clicks: number;
+  campaign_id?: string;
+  targeting_categories?: string[]; // JSON array of category strings
 }
 
 export interface Comment {
@@ -91,19 +107,20 @@ export interface Notification {
     createdAt: string;
 }
 
+export interface SiteSettings {
+    site_title: string;
+    contact_email: string;
+    social_links: {
+        facebook?: string;
+        twitter?: string;
+        linkedin?: string;
+    };
+    allow_registration: boolean;
+}
+
 export interface ArticleAnalysis {
-  sentiment: 'Positive' | 'Negative' | 'Neutral';
-  keyTopics: string[];
-  seoKeywords: string[];
-  readabilityScore: string;
-}
-
-export interface RealtimeLockInfo {
-    userId: string;
-    userName: string;
-}
-
-export interface WebSocketMessage {
-    type: 'start_editing' | 'stop_editing' | 'initial_locks' | 'editing_conflict';
-    payload: any;
+    sentiment: string;
+    keyTopics: string[];
+    seoKeywords: string[];
+    readabilityScore: string;
 }

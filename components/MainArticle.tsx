@@ -13,7 +13,7 @@ interface MainArticleProps {
 }
 
 const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
-  const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn, user, hasActiveSubscription } = useAuth();
   const { t } = useLanguage();
   const { isArticleInLibrary } = useLibrary();
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
@@ -54,15 +54,21 @@ const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
   return (
     <>
       {isCollectionModalOpen && <SaveToCollectionModal article={article} onClose={() => setIsCollectionModalOpen(false)} />}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden my-6 md:my-8">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden my-6 md:my-8 transition-shadow duration-300 hover:shadow-2xl">
         <div className="md:flex">
-          <div className="md:w-1/2">
+          <div className="md:w-1/2 overflow-hidden relative">
             {article.videoUrl ? (
               <video controls src={article.videoUrl} className="w-full h-full object-cover">
                 Your browser does not support the video tag.
               </video>
             ) : (
-              <img className="h-64 w-full object-cover md:h-full" src={article.imageUrl} alt={article.title} />
+              <img className="h-64 w-full object-cover md:h-full transition-transform duration-300 hover:scale-105" src={article.imageUrl} alt={article.title} />
+            )}
+             {article.isPremium && !hasActiveSubscription && (
+                <div className="absolute top-4 left-4 flex items-center space-x-2 bg-yellow-500 text-white text-sm font-semibold px-3 py-1.5 rounded-md shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" /></svg>
+                    <span>Premium Content</span>
+                </div>
             )}
           </div>
           <div className="p-6 md:p-8 flex flex-col justify-between md:w-1/2">
@@ -87,9 +93,9 @@ const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
               <div className="flex items-center justify-between">
                 <button
                   onClick={onReadMore}
-                  className="text-accent-500 dark:text-accent-400 hover:text-accent-600 dark:hover:text-accent-300 font-bold py-2 rounded"
+                  className="text-accent-500 dark:text-accent-400 hover:text-accent-600 dark:hover:text-accent-300 font-bold py-2 rounded transition-colors"
                 >
-                  Read more &rarr;
+                  {article.isPremium && !hasActiveSubscription ? 'Unlock Full Article \u2192' : 'Read more \u2192'}
                 </button>
                 <div className="flex items-center space-x-4">
                     <div className="flex items-center text-gray-500 dark:text-gray-400 text-sm space-x-1">
@@ -99,7 +105,7 @@ const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
                      <button
                           onClick={handleLike}
                           disabled={!isLoggedIn}
-                          className="flex items-center text-gray-500 dark:text-gray-400 text-sm space-x-1 disabled:opacity-50"
+                          className="flex items-center text-gray-500 dark:text-gray-400 text-sm space-x-1 disabled:opacity-50 transition-transform transform hover:scale-110"
                           aria-label={isLiked ? 'Unlike article' : 'Like article'}
                       >
                           <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-colors ${isLiked ? 'text-accent-500' : 'text-gray-400'}`} viewBox="0 0 20 20" fill="currentColor">
@@ -110,7 +116,7 @@ const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
                     {isLoggedIn && (
                        <button
                           onClick={() => setIsCollectionModalOpen(true)}
-                          className="text-gray-500 dark:text-gray-400 hover:text-accent-500 dark:hover:text-accent-400"
+                          className="text-gray-500 dark:text-gray-400 hover:text-accent-500 dark:hover:text-accent-400 transition-colors transform hover:scale-110"
                           aria-label={articleIsInLibrary ? 'Manage collections for this article' : 'Save article'}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">

@@ -10,22 +10,21 @@ import AuthModal from './components/AuthModal.tsx';
 import ArticleModal from './components/ArticleModal.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import SettingsPage from './components/SettingsPage.tsx';
-import AdBanner from './components/AdBanner.tsx';
 import LibraryPage from './components/LibraryPage.tsx';
 import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
 import ErrorDisplay from './components/ErrorDisplay.tsx';
 import SearchOverlay from './components/SearchOverlay.tsx';
 import OfflineBanner from './components/OfflineBanner.tsx';
+import SubscriptionPlanModal from './components/SubscriptionPlanModal.tsx';
+import Aside from './components/Aside.tsx';
 import { useAuth } from './contexts/AuthContext.tsx';
 import { useLanguage } from './contexts/LanguageContext.tsx';
 import { useLibrary } from './contexts/LibraryContext.tsx';
 import { useSettings } from './contexts/SettingsContext.tsx';
 import { Article, Advertisement } from './types.ts';
-import { fetchArticlesWithAds, getArticleById, fetchRandomArticle } from './services/articleService.ts';
-import { fetchPersonalizedNews } from './services/geminiService.ts';
+import { fetchArticles, getArticleById, fetchRandomArticle } from './services/articleService.ts';
 import { fetchReadingHistory } from './services/userService.ts';
 
-type FeedItem = Article | (Advertisement & { isAd: true });
 type View = 'news' | 'admin' | 'settings' | 'library';
 export type SearchFilters = {
     dateRange: 'all' | '24h' | '7d' | '30d';
@@ -33,24 +32,23 @@ export type SearchFilters = {
 }
 
 const App: React.FC = () => {
-  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [feedItems, setFeedItems] = useState<Article[]>([]);
   const [selectedTopic, setSelectedTopic] = useState('Top Stories');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<View>('news');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({ dateRange: 'all', sortBy: 'newest' });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, hasActiveSubscription } = useAuth();
   const { t, loadUserLanguage } = useLanguage();
   const { fetchLibrary, collections } = useLibrary();
   const { loadUserSettings } = useSettings();
-
-  const viewedAds = useRef(new Set<string>());
   
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -81,7 +79,6 @@ const App: React.FC = () => {
     
     setLoading(true);
     setError(null);
-    viewedAds.current.clear();
     
     if (!isOnline) {
         setError("You are currently offline. Please check your connection or browse your saved articles.");
@@ -92,34 +89,15 @@ const App: React.FC = () => {
     
     try {
       let fetchedArticles: Article[] = [];
-      let fetchedAds: Advertisement[] = [];
 
       if (selectedTopic === 'readingHistory' && user?.token) {
           fetchedArticles = await fetchReadingHistory(user.token);
-      } else if (selectedTopic === 'forYou' && user?.token) {
-          const favoriteCategories = collections.find(c => c.name === 'Read Later')?.articles?.map(a => a.category) || [];
-          fetchedArticles = await fetchPersonalizedNews(favoriteCategories, user.token);
       } else {
           const topicToFetch = searchQuery || selectedTopic;
-          const { articles, ads } = await fetchArticlesWithAds(topicToFetch, searchFilters, user?.token);
-          fetchedArticles = articles;
-          fetchedAds = ads;
+          fetchedArticles = await fetchArticles(topicToFetch, searchFilters, user?.token);
       }
 
-      // Intersperse ads into the articles list
-      const combinedFeed: FeedItem[] = [...fetchedArticles];
-      if (fetchedAds.length > 0) {
-          for(let i = 0; i < fetchedAds.length; i++) {
-              const ad = fetchedAds[i];
-              const insertIndex = 2 + (i * 5); // 2, 7, 12...
-              if (insertIndex < combinedFeed.length) {
-                  combinedFeed.splice(insertIndex, 0, { ...ad, isAd: true });
-              } else {
-                  combinedFeed.push({ ...ad, isAd: true });
-              }
-          }
-      }
-      setFeedItems(combinedFeed);
+      setFeedItems(fetchedArticles);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load content.');
@@ -129,7 +107,7 @@ const App: React.FC = () => {
         window.scrollTo(0, 0);
       }
     }
-  }, [selectedTopic, searchQuery, user?.token, collections, view, searchFilters, isOnline]);
+  }, [selectedTopic, searchQuery, user?.token, view, searchFilters, isOnline]);
 
   useEffect(() => {
     if(view === 'news') {
@@ -156,7 +134,11 @@ const App: React.FC = () => {
   };
   
   const handleReadMore = (article: Article) => {
-    setSelectedArticle(article);
+    if (article.isPremium && !hasActiveSubscription) {
+        setIsSubscriptionModalOpen(true);
+    } else {
+        setSelectedArticle(article);
+    }
   };
   
   const handleNavigation = (targetView: 'news' | 'admin' | 'settings' | 'library') => {
@@ -170,7 +152,7 @@ const App: React.FC = () => {
   const handleSelectTrendingArticle = async (articleId: string) => {
     try {
       const fullArticle = await getArticleById(articleId, user?.token);
-      setSelectedArticle(fullArticle);
+      handleReadMore(fullArticle);
       window.scrollTo(0, 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load article details.');
@@ -182,14 +164,14 @@ const App: React.FC = () => {
         const article = await fetchRandomArticle(user?.token);
         if (article) {
             setView('news'); // Ensure we are on the news view
-            setSelectedArticle(article); // Open the modal
+            handleReadMore(article);
         }
     } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not find a surprising article for you.');
     }
   };
 
-  const mainArticle = feedItems.length > 0 && !('isAd' in feedItems[0]) ? feedItems[0] as Article : null;
+  const mainArticle = feedItems.length > 0 ? feedItems[0] : null;
   const otherItems = mainArticle ? feedItems.slice(1) : feedItems;
   
   const renderView = () => {
@@ -203,44 +185,47 @@ const App: React.FC = () => {
           case 'news':
           default:
              return (
-                 <>
-                    <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white my-6 md:my-8 border-b-4 border-accent-500 pb-2">
-                    {searchQuery ? `${t('searchResultsFor')} "${searchQuery}"` : t(selectedTopic as any) || selectedTopic}
-                    </h1>
+                 <div className="grid grid-cols-1 lg:grid-cols-4 lg:gap-8">
+                    <div className="lg:col-span-3">
+                        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white my-6 md:my-8 border-b-4 border-accent-500 pb-2">
+                        {searchQuery ? `${t('searchResultsFor')} "${searchQuery}"` : t(selectedTopic as any) || selectedTopic}
+                        </h1>
 
-                    <AdvancedSearchBar filters={searchFilters} onFiltersChange={setSearchFilters} />
+                        <AdvancedSearchBar filters={searchFilters} onFiltersChange={setSearchFilters} />
 
-                    {loading ? (
-                    <>
-                        <MainArticleSkeleton />
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[...Array(6)].map((_, i) => <ArticleCardSkeleton key={i} />)}
-                        </div>
-                    </>
-                    ) : error ? (
-                     <ErrorDisplay message={error} onRetry={loadNews} />
-                    ) : (
-                    <>
-                        {mainArticle ? (
-                        <MainArticle article={mainArticle} onReadMore={() => handleReadMore(mainArticle)} />
-                        ) : otherItems.length === 0 ? (
-                        <p className="text-center py-12 text-gray-500 dark:text-gray-400">{t('noArticlesFound')}</p>
-                        ) : null}
+                        {loading ? (
+                        <>
+                            <MainArticleSkeleton />
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                            {[...Array(6)].map((_, i) => <ArticleCardSkeleton key={i} />)}
+                            </div>
+                        </>
+                        ) : error ? (
+                         <ErrorDisplay message={error} onRetry={loadNews} />
+                        ) : (
+                        <>
+                            {mainArticle ? (
+                            <MainArticle article={mainArticle} onReadMore={() => handleReadMore(mainArticle)} />
+                            ) : otherItems.length === 0 ? (
+                            <p className="text-center py-12 text-gray-500 dark:text-gray-400">{t('noArticlesFound')}</p>
+                            ) : null}
 
-                        {otherItems.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-                            {otherItems.map(item => 
-                                'isAd' in item ? (
-                                    <AdBanner key={item.id} ad={item} viewedAds={viewedAds} />
-                                ) : (
-                                    <ArticleCard key={item.id} article={item as Article} onReadMore={() => handleReadMore(item as Article)} />
-                                )
+                            {otherItems.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mt-8">
+                                {otherItems.map(item => 
+                                    <ArticleCard key={item.id} article={item} onReadMore={() => handleReadMore(item)} />
+                                )}
+                            </div>
                             )}
-                        </div>
+                        </>
                         )}
-                    </>
-                    )}
-                </>
+                    </div>
+                    <aside className="hidden lg:block lg:col-span-1 pt-8">
+                        <div className="sticky top-20">
+                           <Aside onSubscribeClick={() => setIsSubscriptionModalOpen(true)} />
+                        </div>
+                    </aside>
+                 </div>
              )
       }
   }
@@ -265,6 +250,7 @@ const App: React.FC = () => {
       <BackToTopButton />
 
       {isAuthModalOpen && <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />}
+      {isSubscriptionModalOpen && <SubscriptionPlanModal onClose={() => setIsSubscriptionModalOpen(false)} />}
       {selectedArticle && <ArticleModal article={selectedArticle} onClose={() => setSelectedArticle(null)} />}
       {isSearchOpen && <SearchOverlay onClose={() => setIsSearchOpen(false)} onSearch={handleSearch} />}
     </div>

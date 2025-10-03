@@ -4,8 +4,9 @@ import UserManagement from './admin/UserManagement.tsx';
 import Dashboard from './admin/Dashboard.tsx';
 import AdManagement from './admin/AdManagement.tsx';
 import ModerationQueue from './admin/ModerationQueue.tsx';
+import SiteSettingsManagement from './admin/SiteSettingsManagement.tsx';
 
-type AdminView = 'dashboard' | 'articles' | 'users' | 'ads' | 'moderation';
+type AdminView = 'dashboard' | 'articles' | 'users' | 'ads' | 'moderation' | 'settings';
 
 interface AdminPanelProps {
     onNavigateBack: () => void;
@@ -24,6 +25,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onNavigateBack }) => {
                 return <AdManagement />;
             case 'moderation':
                 return <ModerationQueue />;
+            case 'settings':
+                return <SiteSettingsManagement />;
             case 'dashboard':
             default:
                 return <Dashboard />;
@@ -61,6 +64,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onNavigateBack }) => {
                 <NavButton currentView={view} targetView="users" label="Users" />
                 <NavButton currentView={view} targetView="ads" label="Advertisements" />
                 <NavButton currentView={view} targetView="moderation" label="Moderation" />
+                <NavButton currentView={view} targetView="settings" label="Site Settings" />
             </nav>
 
             <div className="mt-4">

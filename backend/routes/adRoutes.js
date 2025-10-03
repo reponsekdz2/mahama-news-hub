@@ -11,12 +11,12 @@ const {
 const { adminProtect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// Public tracking routes
+// Public routes for fetching and tracking
+router.get('/', getAllAds);
 router.post('/:id/impression', recordImpression);
 router.post('/:id/click', recordClick);
 
-// Admin routes
-router.get('/', adminProtect, getAllAds);
+// Admin routes for management
 router.post('/', adminProtect, upload.single('image'), createAd);
 router.put('/:id', adminProtect, upload.single('image'), updateAd);
 router.delete('/:id', adminProtect, deleteAd);

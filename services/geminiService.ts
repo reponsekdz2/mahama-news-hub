@@ -55,7 +55,7 @@ export const generateArticleWithAI = async (topic: string, token: string): Promi
     return handleResponse(response);
 };
 
-// FIX: Renamed parameter to be more descriptive and match what's sent from the frontend.
+// Renamed parameter to be more descriptive and match what's sent from the frontend.
 export const fetchPersonalizedNews = async (favoriteCategories: string[], token: string): Promise<Article[]> => {
     const response = await fetch(`${API_URL}/personalized-news`, {
         method: 'POST',

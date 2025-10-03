@@ -5,7 +5,14 @@ const { logAdminAction } = require('../services/logService');
 // @desc    Get all users
 const getAllUsers = async (req, res, next) => {
     try {
-        const [users] = await db.query('SELECT id, name, email, role, createdAt, last_login FROM users');
+        const [users] = await db.query(`
+            SELECT 
+                u.id, u.name, u.email, u.role, u.createdAt, u.last_login,
+                s.status as subscriptionStatus,
+                s.end_date as subscriptionEndDate
+            FROM users u
+            LEFT JOIN subscriptions s ON u.id = s.user_id
+        `);
         res.json(users);
     } catch (error) {
         next(error);
@@ -20,6 +27,30 @@ const updateUserRole = async (req, res, next) => {
         await db.query('UPDATE users SET role = ? WHERE id = ?', [role, targetUserId]);
         logAdminAction(req.user.id, 'update', 'user', targetUserId, { newRole: role });
         res.json({ message: 'User role updated' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update user subscription (Admin only)
+const updateUserSubscription = async (req, res, next) => {
+    const targetUserId = req.params.id;
+    const { status, endDate } = req.body;
+     if (!status || !['free', 'premium', 'trial'].includes(status)) {
+        return res.status(400).json({ message: 'Invalid subscription status provided.' });
+    }
+
+    try {
+        const [existingSub] = await db.query('SELECT id FROM subscriptions WHERE user_id = ?', [targetUserId]);
+        if (existingSub.length > 0) {
+            await db.query('UPDATE subscriptions SET status = ?, end_date = ? WHERE user_id = ?', [status, endDate, targetUserId]);
+        } else {
+            await db.query('INSERT INTO subscriptions (user_id, status, end_date) VALUES (?, ?, ?)', [targetUserId, status, endDate]);
+        }
+
+        logAdminAction(req.user.id, 'update', 'subscription', targetUserId, { newStatus: status, newEndDate: endDate });
+        res.json({ message: 'User subscription updated successfully.' });
+
     } catch (error) {
         next(error);
     }
@@ -95,7 +126,7 @@ const getUserPreferences = async (req, res, next) => {
         }
         res.json({
             ...prefs[0],
-            contentPreferences: prefs[0].content_preferences,
+            contentPreferences: prefs[0].content_preferences ? JSON.parse(prefs[0].content_preferences) : [],
             newsletter: !!prefs[0].newsletter_subscribed,
             commentNotificationsEnabled: !!prefs[0].comment_notifications_enabled,
         });
@@ -135,7 +166,7 @@ const getReadingHistory = async (req, res, next) => {
     try {
         const [articles] = await db.query(`
             SELECT DISTINCT
-                a.id, a.title, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl,
+                a.id, a.title, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.is_premium,
                 u.name as authorName,
                 (SELECT COUNT(*) FROM article_views WHERE article_id = a.id) as viewCount,
                 (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as likeCount
@@ -210,5 +241,5 @@ const markNotificationsAsRead = async (req, res, next) => {
 module.exports = {
     getAllUsers, updateUserRole, deleteUser, updateMyProfile, deleteMyAccount,
     getUserPreferences, updateUserPreferences, getReadingHistory, clearReadingHistory,
-    subscribeToNewsletter, getNotifications, markNotificationsAsRead,
+    subscribeToNewsletter, getNotifications, markNotificationsAsRead, updateUserSubscription
 };

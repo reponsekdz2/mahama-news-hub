@@ -61,7 +61,6 @@ const generateArticle = async (topic) => {
 };
 
 
-// FIX: Correctly handle interestProfile string, improve prompt, and add responseSchema for reliable JSON output.
 const getPersonalizedNews = async (interestProfile) => {
     const prompt = `Based on a user's interest profile: "${interestProfile}".
     Generate 3 new, fake but realistic news article objects. Each object must have an id (a new uuid), title, summary (a concise paragraph of about 100 words), content (HTML format, ~150 words), category from this list (World, Technology, Science, Politics, Sport, Health), imageUrl (use picsum.photos with a unique seed like https://picsum.photos/seed/yourseed/800/600), authorName, viewCount (random number between 100 and 10000), and likeCount (random number between 10 and 1000).

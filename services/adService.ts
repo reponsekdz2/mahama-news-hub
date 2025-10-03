@@ -21,6 +21,11 @@ export const fetchAds = async (token: string): Promise<Advertisement[]> => {
     return handleResponse(response);
 };
 
+export const fetchSidebarAds = async (): Promise<Advertisement[]> => {
+    const response = await fetch(`${API_URL}?placement=sidebar`);
+    return handleResponse(response);
+}
+
 export const createAd = async (formData: FormData, token: string): Promise<Advertisement> => {
     const response = await fetch(API_URL, {
         method: 'POST',

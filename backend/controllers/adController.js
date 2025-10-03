@@ -1,17 +1,41 @@
 const db = require('../config/db');
 const { logAdminAction } = require('../services/logService');
 
-// @desc    Get all ads
+// @desc    Get all ads, optionally filtered by placement
 const getAllAds = async (req, res, next) => {
     try {
-        const [ads] = await db.query(`
+        const { placement } = req.query;
+        let query = `
             SELECT 
                 a.id, a.title, a.image_url as imageUrl, a.link_url as linkUrl, a.status, a.placement,
                 (SELECT COUNT(*) FROM ad_impressions WHERE ad_id = a.id) as impressions,
                 (SELECT COUNT(*) FROM ad_clicks WHERE ad_id = a.id) as clicks
             FROM advertisements a
-            ORDER BY a.createdAt DESC
-        `);
+        `;
+        const queryParams = [];
+
+        let whereClauses = [];
+        // Public queries for ads should only show active ones
+        if (!req.user || req.user.role !== 'admin') {
+            whereClauses.push("a.status = 'active'");
+        }
+
+        if (placement) {
+            whereClauses.push("a.placement = ?");
+            queryParams.push(placement);
+        }
+        
+        if (whereClauses.length > 0) {
+            query += ' WHERE ' + whereClauses.join(' AND ');
+        }
+        
+        query += ' ORDER BY a.createdAt DESC';
+
+        if(placement === 'sidebar') {
+            query += ' LIMIT 2';
+        }
+
+        const [ads] = await db.query(query, queryParams);
         res.json(ads);
     } catch (error) {
         next(error);

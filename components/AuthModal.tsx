@@ -96,7 +96,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         id: 'mock-google-user-123',
         name: 'Google User',
         email: 'google.user@example.com',
-        // FIX: Use 'as const' to ensure TypeScript infers 'user' as a literal type, not a string.
         role: 'user' as const,
         token: 'mock-google-jwt-token'
     };

@@ -16,23 +16,53 @@ CREATE TABLE user_preferences (
     theme ENUM('light', 'dark') DEFAULT 'dark',
     accentColor VARCHAR(50) DEFAULT 'red',
     language ENUM('en', 'fr', 'rw') DEFAULT 'en',
+    fontSize ENUM('sm', 'base', 'lg') DEFAULT 'base',
+    lineHeight ENUM('normal', 'relaxed', 'loose') DEFAULT 'normal',
     content_preferences JSON,
     newsletter_subscribed BOOLEAN DEFAULT false,
     comment_notifications_enabled BOOLEAN DEFAULT true,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Subscriptions Table
+CREATE TABLE subscriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    status ENUM('free', 'premium', 'trial') NOT NULL DEFAULT 'free',
+    plan_type ENUM('monthly', 'yearly'),
+    start_date TIMESTAMP,
+    end_date TIMESTAMP,
+    stripe_customer_id VARCHAR(255) NULL,
+    stripe_subscription_id VARCHAR(255) NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY (user_id)
+);
+
+-- Push Subscriptions Table
+CREATE TABLE push_subscriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    subscription_object JSON NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
 -- Articles Table
 CREATE TABLE articles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     summary TEXT,
-    content TEXT NOT NULL,
+    content LONGTEXT NOT NULL,
     category VARCHAR(255) NOT NULL,
     image_url VARCHAR(255),
     video_url VARCHAR(255),
     author_id INT NOT NULL,
     status ENUM('draft', 'published') DEFAULT 'published' NOT NULL,
+    is_premium BOOLEAN DEFAULT FALSE NOT NULL,
+    meta_title VARCHAR(255),
+    meta_description VARCHAR(512),
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_category (category),
@@ -106,14 +136,28 @@ CREATE TABLE collection_articles (
 );
 
 -- Advertisements
+CREATE TABLE ad_campaigns (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    budget_type ENUM('impressions', 'clicks') NOT NULL,
+    budget INT NOT NULL,
+    status ENUM('active', 'inactive', 'completed') DEFAULT 'active',
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE advertisements (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    campaign_id INT,
     title VARCHAR(255) NOT NULL,
     link_url VARCHAR(2048) NOT NULL,
     image_url VARCHAR(255) NOT NULL,
     status ENUM('active', 'inactive') DEFAULT 'active',
     placement ENUM('in-feed', 'sidebar') DEFAULT 'in-feed',
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    targeting_categories JSON, -- Stores an array of category strings
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (campaign_id) REFERENCES ad_campaigns(id) ON DELETE SET NULL
 );
 CREATE TABLE ad_impressions (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -146,7 +190,7 @@ CREATE TABLE notifications (
     FOREIGN KEY (related_article_id) REFERENCES articles(id) ON DELETE CASCADE
 );
 
--- NEW LOGGING TABLES --
+-- LOGGING TABLES --
 CREATE TABLE user_actions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -200,22 +244,15 @@ CREATE TABLE poll_votes (
     UNIQUE KEY user_poll_vote (user_id, poll_id)
 );
 
--- Collaboration & AI Analysis
-CREATE TABLE article_locks (
-    article_id INT PRIMARY KEY,
-    user_id INT NOT NULL,
-    user_name VARCHAR(255) NOT NULL,
-    locked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+-- Site Settings
+CREATE TABLE site_settings (
+    setting_key VARCHAR(50) PRIMARY KEY,
+    setting_value TEXT
 );
 
-CREATE TABLE article_analysis (
-    article_id INT PRIMARY KEY,
-    sentiment ENUM('Positive', 'Negative', 'Neutral') NOT NULL,
-    key_topics JSON,
-    seo_keywords JSON,
-    readability_score VARCHAR(255),
-    analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
-);
+-- Initial default settings
+INSERT INTO site_settings (setting_key, setting_value) VALUES
+('site_title', 'Mahama News TV'),
+('contact_email', 'contact@mahamanews.com'),
+('social_links', '{"facebook": "#", "twitter": "#", "linkedin": "#"}'),
+('allow_registration', '1'); -- 1 for true, 0 for false

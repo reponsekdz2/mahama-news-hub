@@ -3,12 +3,15 @@ import { User } from '../../types.ts';
 import { fetchUsers, updateUserRole, deleteUser } from '../../services/adminService.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 import Spinner from '../Spinner.tsx';
+import SubscriptionEditModal from './SubscriptionEditModal.tsx';
 
 const UserManagement: React.FC = () => {
     const { user: adminUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
+
 
     const loadUsers = useCallback(async () => {
         if (!adminUser?.token) return;
@@ -51,6 +54,13 @@ const UserManagement: React.FC = () => {
 
     return (
         <div>
+            {editingUser && (
+                <SubscriptionEditModal
+                    user={editingUser}
+                    onClose={() => setEditingUser(null)}
+                    onSubscriptionUpdate={loadUsers}
+                />
+            )}
             <h2 className="text-xl font-bold mb-4">Manage Users ({users.length})</h2>
             {error && <p className="text-red-500 mb-4 bg-red-100 dark:bg-red-900/50 p-3 rounded-md">{error}</p>}
             <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -60,6 +70,7 @@ const UserManagement: React.FC = () => {
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Email</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Subscription</th>
                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
@@ -79,7 +90,19 @@ const UserManagement: React.FC = () => {
                                         <option value="admin">Admin</option>
                                     </select>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${user.subscriptionStatus === 'premium' ? 'bg-green-100 text-green-800' : user.subscriptionStatus === 'trial' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                                      {user.subscriptionStatus || 'Free'}
+                                    </span>
+                                    {user.subscriptionEndDate && <p className="text-xs mt-1">Ends: {new Date(user.subscriptionEndDate).toLocaleDateString()}</p>}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                     <button 
+                                        onClick={() => setEditingUser(user)}
+                                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                                    >
+                                        Manage
+                                    </button>
                                     <button 
                                         onClick={() => handleDelete(user.id)}
                                         className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"

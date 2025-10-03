@@ -14,7 +14,7 @@ const handleResponse = async (response: Response) => {
     return response.json();
 }
 
-export const fetchArticlesWithAds = async (topic: string, filters: SearchFilters, token?: string): Promise<{articles: Article[], ads: Advertisement[]}> => {
+export const fetchArticles = async (topic: string, filters: SearchFilters, token?: string): Promise<Article[]> => {
     const headers: HeadersInit = {};
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -28,12 +28,10 @@ export const fetchArticlesWithAds = async (topic: string, filters: SearchFilters
     const response = await fetch(`${API_URL}?${params.toString()}`, { headers });
     const data = await handleResponse(response);
     
-    const articlesWithTags = data.articles.map((article: any) => ({
+    return data.map((article: any) => ({
         ...article,
         tags: article.tags ? article.tags.split(',').map((t:string) => t.trim()) : []
     }));
-
-    return { articles: articlesWithTags, ads: data.ads };
 };
 
 export const searchArticles = async (query: string, token?: string): Promise<Pick<Article, 'id' | 'title'>[]> => {

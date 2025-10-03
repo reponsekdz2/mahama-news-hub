@@ -13,7 +13,7 @@ interface ArticleCardProps {
 }
 
 const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
-  const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn, user, hasActiveSubscription } = useAuth();
   const { t } = useLanguage();
   const { isArticleInLibrary } = useLibrary();
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
@@ -65,10 +65,17 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
         className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col cursor-pointer transition-all duration-300 hover:shadow-2xl group"
       >
         {/* Image container */}
-        <div className="relative">
+        <div className="relative overflow-hidden">
           <img className="h-56 w-full object-cover transition-transform duration-300 group-hover:scale-110" src={article.imageUrl} alt={article.title} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
           
+          {article.isPremium && !hasActiveSubscription && (
+             <div className="absolute top-2 left-2 flex items-center space-x-1 bg-yellow-500 text-white text-xs font-semibold px-2 py-1 rounded-md">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" /></svg>
+                <span>Premium</span>
+            </div>
+          )}
+
           <div className="absolute top-2 right-2 flex space-x-2">
             {isLoggedIn && (
                 <button

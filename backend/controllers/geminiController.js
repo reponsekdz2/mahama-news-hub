@@ -56,7 +56,6 @@ const handleGenerateArticle = async (req, res, next) => {
 const handlePersonalizedNews = async (req, res, next) => {
     try {
         const userId = req.user.id;
-        // FIX: Use favorite categories from the request body if available, otherwise fall back to database query.
         const { favoriteCategories } = req.body;
 
         let interestProfile;

@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactQuill from 'react-quill';
-import { Article } from '../types.ts';
-import { useLanguage, CATEGORIES } from '../contexts/LanguageContext.tsx';
-import { improveWriting, generateImageIdea } from '../services/aiService.ts';
-import { summarizeContent } from '../services/geminiService.ts';
-import { useAuth } from '../contexts/AuthContext.tsx';
+import { Article } from '../../types.ts';
+import { useLanguage, CATEGORIES } from '../../contexts/LanguageContext.tsx';
+import { useAuth } from '../../contexts/AuthContext.tsx';
 
 interface ArticleFormProps {
   articleToEdit?: Partial<Article> | null;
@@ -15,7 +13,6 @@ interface ArticleFormProps {
 
 const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, onCancel, isLoading }) => {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
@@ -26,14 +23,13 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<'draft' | 'published'>('published');
   const [tags, setTags] = useState('');
+  const [isPremium, setIsPremium] = useState(false);
+  const [metaTitle, setMetaTitle] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
   
   // Poll State
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
-  
-  const [isAiLoading, setIsAiLoading] = useState<null | 'summary' | 'writing' | 'idea'>(null);
-  const [imageIdea, setImageIdea] = useState('');
-  const [aiError, setAiError] = useState('');
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -48,8 +44,11 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       setVideoPreview(articleToEdit.videoUrl || null);
       setStatus(articleToEdit.status || 'published');
       setTags((articleToEdit.tags || []).join(', '));
+      setIsPremium(articleToEdit.isPremium || false);
+      setMetaTitle(articleToEdit.meta_title || '');
+      setMetaDescription(articleToEdit.meta_description || '');
       setPollQuestion(articleToEdit.poll?.question || '');
-      setPollOptions(articleToEdit.poll?.options.map(opt => opt.option_text) || ['', '']);
+      setPollOptions(articleToEdit.poll?.options?.map(opt => opt.option_text) || ['', '']);
     } else {
         setTitle('');
         setSummary('');
@@ -61,6 +60,9 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
         setVideoPreview(null);
         setStatus('published');
         setTags('');
+        setIsPremium(false);
+        setMetaTitle('');
+        setMetaDescription('');
         setPollQuestion('');
         setPollOptions(['', '']);
     }
@@ -99,48 +101,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
           setPollOptions(pollOptions.filter((_, i) => i !== index));
       }
   };
-  
-  const handleGenerateSummary = async () => {
-    if(!user?.token || !content) return;
-    setIsAiLoading('summary');
-    setAiError('');
-    try {
-        const result = await summarizeContent({ title, content });
-        setSummary(result);
-    } catch (err) {
-        setAiError(err instanceof Error ? err.message : 'Failed to generate summary.');
-    } finally {
-        setIsAiLoading(null);
-    }
-  };
-  
-  const handleImproveWriting = async () => {
-    if(!user?.token || !content) return;
-    setIsAiLoading('writing');
-    setAiError('');
-    try {
-        const improved = await improveWriting(content, user.token);
-        setContent(improved);
-    } catch (err) {
-        setAiError(err instanceof Error ? err.message : 'Failed to improve text.');
-    } finally {
-        setIsAiLoading(null);
-    }
-  }
-  
-  const handleGenerateImageIdea = async () => {
-      if(!user?.token || !title) return;
-      setIsAiLoading('idea');
-      setAiError('');
-      try {
-          const idea = await generateImageIdea(title, user.token);
-          setImageIdea(idea);
-      } catch(err) {
-          setAiError(err instanceof Error ? err.message : 'Failed to generate idea.');
-      } finally {
-          setIsAiLoading(null);
-      }
-  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,6 +111,9 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
     formData.append('category', category);
     formData.append('status', status);
     formData.append('tags', tags);
+    formData.append('isPremium', String(isPremium));
+    formData.append('metaTitle', metaTitle);
+    formData.append('metaDescription', metaDescription);
     if (image) {
       formData.append('image', image);
     } else if (articleToEdit?.imageUrl) {
@@ -173,7 +136,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {aiError && <p className="text-red-500 text-sm mb-4">{aiError}</p>}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Title
@@ -189,14 +151,9 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       </div>
       
       <div>
-        <div className="flex justify-between items-center">
-            <label htmlFor="summary" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {t('summary')}
-            </label>
-            <button type="button" onClick={handleGenerateSummary} disabled={isAiLoading === 'summary' || !content} className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline disabled:opacity-50 disabled:no-underline">
-                {isAiLoading === 'summary' ? t('generating') : t('generateSummary')}
-            </button>
-        </div>
+        <label htmlFor="summary" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {t('summary')}
+        </label>
         <textarea
           id="summary"
           value={summary}
@@ -237,6 +194,21 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
             </select>
         </div>
       </div>
+       <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-900/50 p-3 rounded-md border dark:border-gray-700">
+            <div>
+                 <label htmlFor="isPremium" className="font-medium text-gray-700 dark:text-gray-300">
+                  Premium Content
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Subscribers only. Users will be shown a paywall.</p>
+            </div>
+            <input
+              id="isPremium"
+              type="checkbox"
+              checked={isPremium}
+              onChange={(e) => setIsPremium(e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300 text-accent-600 focus:ring-accent-500"
+            />
+        </div>
 
       <div>
         <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -252,28 +224,17 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       </div>
 
       <div>
-        <div className="flex justify-between items-center">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Content
-            </label>
-            <button type="button" onClick={handleImproveWriting} disabled={isAiLoading === 'writing' || !content} className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline disabled:opacity-50 disabled:no-underline">
-                {isAiLoading === 'writing' ? t('generating') : t('improveWriting')}
-            </button>
-        </div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Content
+        </label>
         <ReactQuill theme="snow" value={content} onChange={setContent} className="mt-1 bg-white dark:bg-gray-700 dark:text-white" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <div className="flex justify-between items-center">
-                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Cover Image
-                </label>
-                 <button type="button" onClick={handleGenerateImageIdea} disabled={isAiLoading === 'idea' || !title} className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline disabled:opacity-50 disabled:no-underline">
-                    {isAiLoading === 'idea' ? t('generating') : t('generateImageIdea')}
-                </button>
-            </div>
-            {imageIdea && <textarea readOnly value={imageIdea} className="mt-2 w-full text-sm p-2 rounded-md bg-gray-100 dark:bg-gray-900 border dark:border-gray-600" rows={3}/>}
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Cover Image
+            </label>
             <div className="mt-2 flex items-center space-x-4">
               {imagePreview && <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-md" />}
               <button
@@ -321,6 +282,22 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
                 </div>
             ))}
             <button type="button" onClick={addPollOption} disabled={pollOptions.length >= 10} className="text-sm font-medium text-accent-600 hover:text-accent-800 disabled:opacity-50">+ Add Option</button>
+        </div>
+      </div>
+      
+       {/* SEO Section */}
+      <div className="border-t dark:border-gray-700 pt-6">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">SEO Settings</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Customize how this article appears on search engines.</p>
+        <div className="space-y-4">
+            <div>
+                <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Meta Title</label>
+                <input id="metaTitle" type="text" value={metaTitle} onChange={e => setMetaTitle(e.target.value)} placeholder="A concise, SEO-friendly title (50-60 characters)" className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md" />
+            </div>
+             <div>
+                <label htmlFor="metaDescription" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Meta Description</label>
+                <textarea id="metaDescription" value={metaDescription} onChange={e => setMetaDescription(e.target.value)} rows={2} placeholder="A short description for search results (150-160 characters)" className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md" />
+            </div>
         </div>
       </div>
 

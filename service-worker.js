@@ -72,3 +72,42 @@ self.addEventListener('activate', event => {
     })
   );
 });
+
+// Listen for push notifications
+self.addEventListener('push', event => {
+  const data = event.data.json();
+  const options = {
+    body: data.body,
+    icon: '/icon-192x192.png', // Make sure you have an icon file
+    badge: '/badge-72x72.png', // And a badge file
+    data: {
+      url: data.url,
+    },
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// Handle notification click
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const urlToOpen = event.notification.data.url;
+  
+  event.waitUntil(
+    clients.matchAll({
+      type: 'window',
+    }).then(clientList => {
+      for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});

@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { logUserAction, logAdminAction } = require('../services/logService');
+const { checkUserSubscription } = require('../services/subscriptionHelper');
 
 // Helper function to manage article tags within a transaction
 const handleArticleTags = async (connection, articleId, tagsString) => {
@@ -26,7 +27,8 @@ const getArticles = async (req, res, next) => {
         const { topic, dateRange = 'all', sortBy = 'newest' } = req.query;
         let query = `
             SELECT 
-                a.id, a.title, a.summary, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
+                a.id, a.title, a.summary, a.is_premium,
+                a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
                 u.name as authorName,
                 (SELECT COUNT(*) FROM article_views WHERE article_id = a.id) as viewCount,
                 (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as likeCount,
@@ -43,7 +45,7 @@ const getArticles = async (req, res, next) => {
         }
 
         if (topic && topic !== 'Top Stories') {
-            whereClauses.push('(a.category = ? OR a.title LIKE ? OR a.content LIKE ? OR t.name = ?)');
+            whereClauses.push('(a.category = ? OR a.title LIKE ? OR a.summary LIKE ? OR t.name = ?)');
             const searchTerm = `%${topic}%`;
             queryParams.push(topic, searchTerm, searchTerm, topic);
         }
@@ -82,13 +84,15 @@ const getArticles = async (req, res, next) => {
 
         const [articles] = await db.query(query, queryParams);
         
-        const [ads] = await db.query(`
-            SELECT id, title, image_url as imageUrl, link_url as linkUrl, status, placement
-            FROM advertisements
-            WHERE status = 'active' AND placement = 'in-feed'
-        `);
+        // For premium articles, we only send the summary if user is not subscribed
+        const isSubscribed = req.user ? await checkUserSubscription(req.user.id) : false;
 
-        res.json({ articles, ads });
+        const processedArticles = articles.map(article => ({
+            ...article,
+            content: (article.is_premium && !isSubscribed) ? "This is premium content. Subscribe to read the full article." : article.content
+        }));
+
+        res.json(processedArticles);
     } catch (error) {
         next(error);
     }
@@ -117,7 +121,7 @@ const getRandomArticle = async (req, res, next) => {
         // This query is optimized for performance on large tables
         const [articles] = await db.query(`
             SELECT 
-                a.id, a.title, a.summary, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
+                a.id, a.title, a.summary, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status, a.is_premium,
                 u.name as authorName,
                 (SELECT COUNT(*) FROM article_views WHERE article_id = a.id) as viewCount,
                 (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as likeCount,
@@ -133,7 +137,20 @@ const getRandomArticle = async (req, res, next) => {
         if (articles.length === 0) {
             return res.status(404).json({ message: 'No articles found' });
         }
-        res.json(articles[0]);
+
+        const article = articles[0];
+        const isSubscribed = req.user ? await checkUserSubscription(req.user.id) : false;
+        
+        if (article.is_premium && !isSubscribed) {
+            // Send a partial response for the paywall
+             return res.json({
+                ...article,
+                content: "This is premium content. Please subscribe to read the full article."
+             });
+        }
+
+
+        res.json(article);
     } catch (error) {
         next(error);
     }
@@ -143,7 +160,8 @@ const getArticleById = async (req, res, next) => {
     try {
         const [articles] = await db.query(`
             SELECT 
-                a.id, a.title, a.summary, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
+                a.id, a.title, a.summary, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status, a.is_premium,
+                a.meta_title, a.meta_description,
                 u.name as authorName,
                 (SELECT COUNT(*) FROM article_views WHERE article_id = a.id) as viewCount,
                 (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as likeCount,
@@ -158,7 +176,17 @@ const getArticleById = async (req, res, next) => {
         if (articles.length === 0) return res.status(404).json({ message: 'Article not found' });
         
         const article = articles[0];
+
+        const isSubscribed = req.user ? await checkUserSubscription(req.user.id) : false;
         
+        if (article.is_premium && !isSubscribed) {
+             // Send a partial response for the paywall
+             return res.json({
+                ...article,
+                content: "This is premium content. Please subscribe to read the full article."
+             });
+        }
+
         // Fetch poll data if it exists
         const [polls] = await db.query('SELECT id, question FROM polls WHERE article_id = ?', [req.params.id]);
         if (polls.length > 0) {
@@ -166,19 +194,11 @@ const getArticleById = async (req, res, next) => {
             const [options] = await db.query('SELECT id, option_text FROM poll_options WHERE poll_id = ?', [poll.id]);
             
             let userVote = null;
-            // req.user might not exist for public viewers, so we check for it
-            if (req.headers.authorization) {
-                try {
-                    const token = req.headers.authorization.split(' ')[1];
-                    const jwt = require('jsonwebtoken');
-                    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                     if (decoded.id) {
-                        const [votes] = await db.query('SELECT poll_option_id FROM poll_votes WHERE user_id = ? AND poll_id = ?', [decoded.id, poll.id]);
-                        if (votes.length > 0) {
-                            userVote = votes[0].poll_option_id;
-                        }
-                     }
-                } catch(e) { /* Ignore token errors for public viewers */ }
+            if (req.user) {
+                const [votes] = await db.query('SELECT poll_option_id FROM poll_votes WHERE user_id = ? AND poll_id = ?', [req.user.id, poll.id]);
+                if (votes.length > 0) {
+                    userVote = votes[0].poll_option_id;
+                }
             }
 
             let totalVotes = 0;
@@ -218,7 +238,7 @@ const getRelatedArticles = async (req, res, next) => {
 };
 
 const createArticle = async (req, res, next) => {
-    const { title, summary, content, category, status, tags } = req.body;
+    const { title, summary, content, category, status, tags, isPremium, metaTitle, metaDescription } = req.body;
     const author_id = req.user.id;
     const imageUrl = req.files.image ? `/uploads/${req.files.image[0].filename}` : null;
     const videoUrl = req.files.video ? `/uploads/${req.files.video[0].filename}` : null;
@@ -228,15 +248,15 @@ const createArticle = async (req, res, next) => {
     try {
         await connection.beginTransaction();
         const [result] = await connection.query(
-            'INSERT INTO articles (title, summary, content, category, image_url, video_url, author_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [title, summary, content, category, imageUrl, videoUrl, author_id, status || 'published']
+            'INSERT INTO articles (title, summary, content, category, image_url, video_url, author_id, status, is_premium, meta_title, meta_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [title, summary, content, category, imageUrl, videoUrl, author_id, status || 'published', isPremium === 'true', metaTitle, metaDescription]
         );
         const articleId = result.insertId;
         await handleArticleTags(connection, articleId, tags);
         await connection.commit();
         
         logAdminAction(req.user.id, 'create', 'article', articleId, { title, category });
-        res.status(201).json({ id: articleId, title, summary, content, category, imageUrl, videoUrl, author_id, status, tags });
+        res.status(201).json({ id: articleId, title, summary, content, category, imageUrl, videoUrl, author_id, status, tags, isPremium });
     } catch (error) {
         await connection.rollback();
         next(error);
@@ -246,7 +266,7 @@ const createArticle = async (req, res, next) => {
 };
 
 const updateArticle = async (req, res, next) => {
-    const { title, summary, content, category, status, tags } = req.body;
+    const { title, summary, content, category, status, tags, isPremium, metaTitle, metaDescription } = req.body;
     const articleId = req.params.id;
     const imageUrl = req.files.image ? `/uploads/${req.files.image[0].filename}` : req.body.imageUrl;
     const videoUrl = req.files.video ? `/uploads/${req.files.video[0].filename}` : req.body.videoUrl;
@@ -255,8 +275,8 @@ const updateArticle = async (req, res, next) => {
     try {
         await connection.beginTransaction();
         await connection.query(
-            'UPDATE articles SET title = ?, summary = ?, content = ?, category = ?, image_url = ?, video_url = ?, status = ? WHERE id = ?',
-            [title, summary, content, category, imageUrl, videoUrl, status, articleId]
+            'UPDATE articles SET title = ?, summary = ?, content = ?, category = ?, image_url = ?, video_url = ?, status = ?, is_premium = ?, meta_title = ?, meta_description = ? WHERE id = ?',
+            [title, summary, content, category, imageUrl, videoUrl, status, isPremium === 'true', metaTitle, metaDescription, articleId]
         );
         await handleArticleTags(connection, articleId, tags);
         await connection.commit();
@@ -315,7 +335,9 @@ const recordView = async (req, res, next) => {
 
 const recordShare = async (req, res, next) => {
     const articleId = req.params.id;
-    const { platform } = req.body;
+    const { platform } = req.body; // e.g., 'twitter', 'facebook', 'native_share', 'copy_link'
+    if(!platform) return res.status(400).json({ message: 'Platform is required.' });
+
     try {
         logUserAction(req.user.id, 'share_article', articleId, { platform });
         res.status(201).json({ message: 'Share recorded' });

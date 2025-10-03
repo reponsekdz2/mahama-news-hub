@@ -30,10 +30,26 @@ const registerUser = async (req, res, next) => {
         // Create default preferences for the new user
         await db.query('INSERT INTO user_preferences (user_id) VALUES (?)', [newUser_id]);
 
+        // Grant a 1-month free trial subscription
+        const trialEndDate = new Date();
+        trialEndDate.setMonth(trialEndDate.getMonth() + 1);
+        
+        await db.query(
+            'INSERT INTO subscriptions (user_id, status, start_date, end_date) VALUES (?, ?, NOW(), ?)',
+            [newUser_id, 'trial', trialEndDate]
+        );
+
+        const userWithSub = {
+            ...newUser[0],
+            subscriptionStatus: 'trial',
+            subscriptionEndDate: trialEndDate.toISOString()
+        }
+
+
         if (newUser.length > 0) {
             const token = generateToken(newUser[0].id);
             res.status(201).json({
-                user: newUser[0],
+                user: userWithSub,
                 token
             });
         } else {
@@ -64,6 +80,21 @@ const loginUser = async (req, res, next) => {
             if (isMatch) {
                 // Update last_login timestamp
                 await db.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
+                
+                // Fetch subscription status
+                const [subs] = await db.query('SELECT status, end_date FROM subscriptions WHERE user_id = ?', [user.id]);
+                
+                let subscriptionStatus = 'free';
+                let subscriptionEndDate = null;
+
+                if (subs.length > 0) {
+                    const sub = subs[0];
+                    if (sub.end_date && new Date(sub.end_date) > new Date()) {
+                        subscriptionStatus = sub.status;
+                        subscriptionEndDate = sub.end_date;
+                    }
+                }
+
 
                 const token = generateToken(user.id);
                 res.json({
@@ -72,6 +103,8 @@ const loginUser = async (req, res, next) => {
                         name: user.name,
                         email: user.email,
                         role: user.role,
+                        subscriptionStatus,
+                        subscriptionEndDate,
                     },
                     token
                 });

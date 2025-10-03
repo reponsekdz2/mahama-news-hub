@@ -26,7 +26,7 @@ const AIToolsPanel: React.FC<AIToolsPanelProps> = ({ article }) => {
         setIsLoading('summary');
         setError(null);
         try {
-            const result = await summarizeContent({ title: article.title, summary: article.content });
+            const result = await summarizeContent({ title: article.title, content: article.content });
             setSummary(result);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to get summary.');

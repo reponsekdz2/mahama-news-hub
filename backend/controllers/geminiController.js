@@ -1,4 +1,5 @@
 const geminiService = require('../services/geminiService');
+const db = require('../config/db');
 
 const handleTranslation = async (req, res, next) => {
     try {
@@ -15,11 +16,11 @@ const handleTranslation = async (req, res, next) => {
 
 const handleSummarization = async (req, res, next) => {
     try {
-        const { content } = req.body;
-        if (!content) {
+        const { articleData } = req.body;
+        if (!articleData) {
             return res.status(400).json({ message: 'Content to summarize is required.' });
         }
-        const summary = await geminiService.summarizeText(content);
+        const summary = await geminiService.summarizeText(articleData);
         res.json({ summary });
     } catch (error) {
         next(error);
@@ -53,12 +54,42 @@ const handleGenerateArticle = async (req, res, next) => {
 };
 
 const handlePersonalizedNews = async (req, res, next) => {
-     try {
-        const { savedArticleTitles } = req.body;
-        if (!savedArticleTitles) {
-            return res.status(400).json({ message: 'Article titles are required for personalization.' });
+    try {
+        const userId = req.user.id;
+        // FIX: Use favorite categories from the request body if available, otherwise fall back to database query.
+        const { favoriteCategories } = req.body;
+
+        let interestProfile;
+
+        if (favoriteCategories && favoriteCategories.length > 0) {
+            interestProfile = `a user interested in categories like: ${[...new Set(favoriteCategories)].join(', ')}`;
+        } else {
+            // Fetch user's interaction history to build an interest profile as a fallback
+            const [userInterests] = await db.query(`
+                SELECT 
+                    a.category,
+                    t.name as tagName,
+                    COUNT(ua.id) as interaction_count
+                FROM user_actions ua
+                JOIN articles a ON ua.target_id = a.id
+                LEFT JOIN article_tags at ON a.id = at.article_id
+                LEFT JOIN tags t ON at.tag_id = t.id
+                WHERE ua.user_id = ? AND ua.action_type IN ('view', 'like')
+                GROUP BY a.category, t.name
+                ORDER BY interaction_count DESC
+                LIMIT 20;
+            `, [userId]);
+
+            if (userInterests.length > 0) {
+                const topCategories = [...new Set(userInterests.map(i => i.category))].slice(0, 5);
+                const topTags = [...new Set(userInterests.map(i => i.tagName).filter(Boolean))].slice(0, 5);
+                interestProfile = `a user interested in categories like: ${topCategories.join(', ')} and topics like: ${topTags.join(', ')}`;
+            } else {
+                interestProfile = "general news";
+            }
         }
-        const articles = await geminiService.getPersonalizedNews(savedArticleTitles);
+
+        const articles = await geminiService.getPersonalizedNews(interestProfile);
         res.json(articles);
     } catch (error) {
         next(error);

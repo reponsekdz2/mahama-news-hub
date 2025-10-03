@@ -26,6 +26,7 @@ CREATE TABLE user_preferences (
 CREATE TABLE articles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
+    summary TEXT,
     content TEXT NOT NULL,
     category VARCHAR(255) NOT NULL,
     image_url VARCHAR(255),
@@ -79,11 +80,13 @@ CREATE TABLE comments (
     content TEXT NOT NULL,
     article_id INT NOT NULL,
     user_id INT NOT NULL,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_article_id (article_id),
-    INDEX idx_user_id (user_id)
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status)
 );
 
 -- Collections (Saved Articles)
@@ -195,4 +198,24 @@ CREATE TABLE poll_votes (
     FOREIGN KEY (poll_option_id) REFERENCES poll_options(id) ON DELETE CASCADE,
     FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE,
     UNIQUE KEY user_poll_vote (user_id, poll_id)
+);
+
+-- Collaboration & AI Analysis
+CREATE TABLE article_locks (
+    article_id INT PRIMARY KEY,
+    user_id INT NOT NULL,
+    user_name VARCHAR(255) NOT NULL,
+    locked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE article_analysis (
+    article_id INT PRIMARY KEY,
+    sentiment ENUM('Positive', 'Negative', 'Neutral') NOT NULL,
+    key_topics JSON,
+    seo_keywords JSON,
+    readability_score VARCHAR(255),
+    analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
 );

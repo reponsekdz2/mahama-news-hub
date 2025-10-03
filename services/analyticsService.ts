@@ -8,29 +8,31 @@ export interface TrendingArticle extends Pick<Article, 'id' | 'title'> {
 
 const handleResponse = async (response: Response) => {
     if (!response.ok) {
-        // Try to get a meaningful error message from JSON, but have a fallback.
+        const errorText = await response.text();
         try {
-            const error = await response.json();
-            throw new Error(error.message || 'An API error occurred');
+            // Assume error is JSON, as per our errorHandler
+            const errorJson = JSON.parse(errorText);
+            throw new Error(errorJson.message || 'An API error occurred.');
         } catch (e) {
+            // If not JSON, log the raw text and throw a generic error.
+            console.error("Non-JSON error response from API:", errorText);
             throw new Error('An API error occurred and the response was not valid JSON.');
         }
     }
     
+    // This part is for successful responses
     const text = await response.text();
-
     if (!text) {
-        // The component expects an array, so return an empty one for empty responses.
         return [];
     }
-
     try {
         return JSON.parse(text);
     } catch (e) {
-        console.error("Failed to parse JSON response:", text);
+        console.error("Failed to parse successful JSON response:", text);
         throw new Error("Failed to parse server response.");
     }
 };
+
 
 export const fetchTrendingArticles = async (): Promise<TrendingArticle[]> => {
     const response = await fetch(`${API_URL}/trending`);

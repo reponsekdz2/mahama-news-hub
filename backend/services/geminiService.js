@@ -1,4 +1,4 @@
-const { GoogleGenAI, Type } = require("@google/genai");
+const { GoogleGenAI, Type } = require("@google/ai");
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const model = "gemini-2.5-flash";
@@ -23,9 +23,9 @@ const translateContent = async (content, targetLanguage) => {
     return JSON.parse(response.text);
 };
 
-const summarizeText = async (content) => {
-    const { title, summary } = content;
-    const prompt = `Summarize the following article content into 3-5 key bullet points. The article title is "${title}". The content is: "${summary}". Return only the bullet points.`;
+const summarizeText = async (articleData) => {
+    const { title, content } = articleData;
+    const prompt = `Summarize the following article content into a concise paragraph (around 100-120 words). The article title is "${title}". The content is: "${content}". Return only the summary paragraph.`;
     
     const response = await ai.models.generateContent({ model, contents: prompt });
     return response.text;
@@ -40,7 +40,7 @@ const answerQuestion = async (context, question) => {
 };
 
 const generateArticle = async (topic) => {
-    const prompt = `Generate a short news article about "${topic}". The article should have a "title", a "summary" (around 150 words, in HTML format with paragraphs), and a suitable "category" from this list: World, Technology, Science, Politics, Sport, Health. Return the result as a single JSON object.`;
+    const prompt = `Generate a short news article about "${topic}". The article should have a "title", a "summary" (around 150 words), and a "category" from this list: World, Technology, Science, Politics, Sport, Health. Return the result as a single JSON object.`;
 
     const response = await ai.models.generateContent({
         model,
@@ -61,9 +61,10 @@ const generateArticle = async (topic) => {
 };
 
 
-const getPersonalizedNews = async (savedArticleTitles) => {
-    const prompt = `Based on a user's interest in these articles: ${savedArticleTitles.join(', ')}.
-    Generate 3 new, fake but realistic news article objects. Each object must have an id (a new uuid), title, content (HTML format, ~150 words), category, imageUrl (use picsum.photos with a unique seed), authorName, viewCount (random number), and likeCount (random number).
+// FIX: Correctly handle interestProfile string, improve prompt, and add responseSchema for reliable JSON output.
+const getPersonalizedNews = async (interestProfile) => {
+    const prompt = `Based on a user's interest profile: "${interestProfile}".
+    Generate 3 new, fake but realistic news article objects. Each object must have an id (a new uuid), title, summary (a concise paragraph of about 100 words), content (HTML format, ~150 words), category from this list (World, Technology, Science, Politics, Sport, Health), imageUrl (use picsum.photos with a unique seed like https://picsum.photos/seed/yourseed/800/600), authorName, viewCount (random number between 100 and 10000), and likeCount (random number between 10 and 1000).
     Return a valid JSON array of these 3 article objects.`;
     
     const response = await ai.models.generateContent({ 
@@ -71,6 +72,24 @@ const getPersonalizedNews = async (savedArticleTitles) => {
         contents: prompt,
         config: {
             responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        id: { type: Type.STRING },
+                        title: { type: Type.STRING },
+                        summary: { type: Type.STRING },
+                        content: { type: Type.STRING },
+                        category: { type: Type.STRING },
+                        imageUrl: { type: Type.STRING },
+                        authorName: { type: Type.STRING },
+                        viewCount: { type: Type.NUMBER },
+                        likeCount: { type: Type.NUMBER },
+                    },
+                    required: ["id", "title", "summary", "content", "category", "imageUrl", "authorName", "viewCount", "likeCount"]
+                }
+            }
         }
     });
 

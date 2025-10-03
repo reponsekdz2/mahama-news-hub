@@ -1,4 +1,4 @@
-import { Article, Advertisement } from '../types.ts';
+import { Article, Advertisement, Comment } from '../types.ts';
 import { SearchFilters } from '../App.tsx';
 
 const API_URL = '/api/articles';
@@ -153,12 +153,12 @@ export const trackShare = async (articleId: string, platform: string, token: str
     }
 };
 
-export const getComments = async (articleId: string) => {
+export const getComments = async (articleId: string): Promise<Comment[]> => {
     const response = await fetch(`${API_URL}/${articleId}/comments`);
     return handleResponse(response);
 }
 
-export const postComment = async (articleId: string, content: string, token: string) => {
+export const postComment = async (articleId: string, content: string, token: string): Promise<{message: string}> => {
     const response = await fetch(`${API_URL}/${articleId}/comments`, {
         method: 'POST',
         headers: {

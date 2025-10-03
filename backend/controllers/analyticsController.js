@@ -93,8 +93,8 @@ const getTrendingArticles = async (req, res, next) => {
             SELECT a.id, a.title, COUNT(v.id) as views
             FROM articles a
             JOIN article_views v ON a.id = v.article_id
-            WHERE v.createdAt >= CURDATE() - INTERVAL 7 DAY
-            GROUP BY a.id ORDER BY views DESC LIMIT 5
+            WHERE v.createdAt >= CURDATE() - INTERVAL 7 DAY AND a.status = 'published'
+            GROUP BY a.id, a.title ORDER BY views DESC LIMIT 5
         `);
         res.json(articles);
     } catch (error) {

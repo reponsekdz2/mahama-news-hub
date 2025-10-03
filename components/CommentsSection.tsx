@@ -17,6 +17,8 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submitStatus, setSubmitStatus] = useState('');
+
 
   const fetchComments = useCallback(async () => {
     try {
@@ -42,9 +44,11 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId }) => {
     try {
       setIsSubmitting(true);
       setError(null);
-      const postedComment = await postComment(articleId, newComment, user.token);
-      setComments(prev => [postedComment, ...prev]);
+      setSubmitStatus('');
+      const response = await postComment(articleId, newComment, user.token);
       setNewComment('');
+      setSubmitStatus(response.message);
+      setTimeout(() => setSubmitStatus(''), 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to post comment.');
     } finally {
@@ -65,7 +69,8 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ articleId }) => {
             className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 bg-white dark:bg-gray-700"
             rows={3}
           />
-          <div className="flex justify-end mt-2">
+          <div className="flex justify-end items-center mt-2 gap-4">
+            {submitStatus && <p className="text-sm text-green-600 dark:text-green-400">{submitStatus}</p>}
             <button type="submit" disabled={isSubmitting || !newComment.trim()} className="px-4 py-2 bg-accent-600 text-white rounded-md text-sm font-medium hover:bg-accent-700 disabled:opacity-50">
               {isSubmitting ? 'Posting...' : 'Post Comment'}
             </button>

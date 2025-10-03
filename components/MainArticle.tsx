@@ -51,15 +51,6 @@ const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
     }
   };
 
-  const createSnippet = (html: string, length: number) => {
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    const text = div.textContent || div.innerText || '';
-    return text.length > length ? text.substring(0, length) + '...' : text;
-  };
-  
-  const snippet = createSnippet(article.content, 200);
-
   return (
     <>
       {isCollectionModalOpen && <SaveToCollectionModal article={article} onClose={() => setIsCollectionModalOpen(false)} />}
@@ -78,7 +69,7 @@ const MainArticle: React.FC<MainArticleProps> = ({ article, onReadMore }) => {
             <div>
               <div className="uppercase tracking-wide text-sm text-accent-500 font-semibold">{article.category}</div>
               <h1 className="block mt-1 text-2xl leading-tight font-bold text-black dark:text-white hover:underline">{article.title}</h1>
-              <p className="mt-4 text-gray-600 dark:text-gray-300 text-base leading-relaxed">{snippet}</p>
+              <p className="mt-4 text-gray-600 dark:text-gray-300 text-base leading-relaxed">{article.summary || ''}</p>
                {article.tags && article.tags.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {article.tags.map(tag => (

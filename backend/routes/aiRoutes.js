@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { 
     handleImproveWriting,
-    handleGenerateImageIdea
+    handleGenerateImageIdea,
+    handleAnalyzeArticle
 } = require('../controllers/aiController');
 const { adminProtect } = require('../middleware/authMiddleware');
 
@@ -11,5 +12,6 @@ router.use(adminProtect);
 
 router.post('/improve-writing', handleImproveWriting);
 router.post('/generate-image-idea', handleGenerateImageIdea);
+router.post('/analyze-article', handleAnalyzeArticle);
 
 module.exports = router;

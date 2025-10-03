@@ -1,4 +1,4 @@
-const { GoogleGenAI } = require("@google/genai");
+const { GoogleGenAI, Type } = require("@google/genai");
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const model = "gemini-2.5-flash";
@@ -27,7 +27,46 @@ const generateImageIdea = async (title) => {
     return response.text;
 };
 
+
+/**
+ * Analyzes article content for sentiment, topics, keywords, and readability.
+ * @param {string} title - The article title.
+ * @param {string} content - The article content (HTML).
+ * @returns {Promise<object>} An object containing the analysis.
+ */
+const analyzeArticle = async (title, content) => {
+    // Basic HTML stripping for better analysis
+    const textContent = content.replace(/<[^>]*>/g, ' ');
+
+    const prompt = `Analyze the following news article titled "${title}" with the content: "${textContent}". Provide the following analysis in a single, valid JSON object:
+    1.  "sentiment": Classify the overall tone as "Positive", "Negative", or "Neutral".
+    2.  "keyTopics": An array of 5-7 key topics or entities (people, places, concepts) discussed.
+    3.  "seoKeywords": An array of 5-7 relevant SEO keywords for this article.
+    4.  "readabilityScore": A brief, human-readable readability score (e.g., "University Level", "Easy to read for most adults").`;
+
+    const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    sentiment: { type: Type.STRING },
+                    keyTopics: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    seoKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    readabilityScore: { type: Type.STRING }
+                },
+                required: ["sentiment", "keyTopics", "seoKeywords", "readabilityScore"]
+            }
+        }
+    });
+
+    return JSON.parse(response.text);
+};
+
 module.exports = {
     improveText,
-    generateImageIdea
+    generateImageIdea,
+    analyzeArticle
 };

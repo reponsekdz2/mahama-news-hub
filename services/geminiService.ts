@@ -23,11 +23,11 @@ export const translateArticleContent = async (
     return handleResponse(response);
 };
 
-export const summarizeContent = async (content: { title: string; summary: string }): Promise<string> => {
+export const summarizeContent = async (articleData: { title: string; content: string }): Promise<string> => {
     const response = await fetch(`${API_URL}/summarize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ articleData })
     });
     const data = await handleResponse(response);
     return data.summary;
@@ -55,14 +55,15 @@ export const generateArticleWithAI = async (topic: string, token: string): Promi
     return handleResponse(response);
 };
 
-export const fetchPersonalizedNews = async (savedArticleTitles: string[], token: string): Promise<Article[]> => {
+// FIX: Renamed parameter to be more descriptive and match what's sent from the frontend.
+export const fetchPersonalizedNews = async (favoriteCategories: string[], token: string): Promise<Article[]> => {
     const response = await fetch(`${API_URL}/personalized-news`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ savedArticleTitles })
+        body: JSON.stringify({ favoriteCategories })
     });
     return handleResponse(response);
 };

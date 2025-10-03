@@ -4,6 +4,7 @@ import { useSettings, Theme } from '../contexts/SettingsContext.tsx';
 import { subscribeToNewsletter } from '../services/userService.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import TrendingArticles from './TrendingArticles.tsx';
+import AboutAIModal from './AboutAIModal.tsx';
 
 interface FooterProps {
   onTopicChange: (topic: string) => void;
@@ -18,6 +19,7 @@ const Footer: React.FC<FooterProps> = ({ onTopicChange, onArticleSelect }) => {
   const [email, setEmail] = useState('');
   const [subscribeMessage, setSubscribeMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +37,8 @@ const Footer: React.FC<FooterProps> = ({ onTopicChange, onArticleSelect }) => {
   };
 
   return (
+    <>
+    {isAiModalOpen && <AboutAIModal onClose={() => setIsAiModalOpen(false)} />}
     <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-12">
       <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="xl:grid xl:grid-cols-5 xl:gap-8">
@@ -68,10 +72,11 @@ const Footer: React.FC<FooterProps> = ({ onTopicChange, onArticleSelect }) => {
             <div>
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-wider uppercase">Company</h3>
                 <ul className="mt-4 space-y-4">
+                    <li><button onClick={() => setIsAiModalOpen(true)} className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">{t('aboutAI')}</button></li>
                     <li><a href="#" className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">About</a></li>
                     <li><a href="#" className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Contact Us</a></li>
-                    <li><a href="#" className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Terms of Service</a></li>
-                    <li><a href="#" className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Privacy Policy</a></li>
+                    <li><a href="/rss.xml" target="_blank" className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">RSS Feed</a></li>
+                    <li><a href="/sitemap.xml" target="_blank" className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Sitemap</a></li>
                 </ul>
             </div>
              <div>
@@ -107,6 +112,7 @@ const Footer: React.FC<FooterProps> = ({ onTopicChange, onArticleSelect }) => {
         </div>
       </div>
     </footer>
+    </>
   );
 };
 

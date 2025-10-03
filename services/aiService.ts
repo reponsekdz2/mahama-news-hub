@@ -1,3 +1,5 @@
+import { ArticleAnalysis } from '../types.ts';
+
 const API_URL = '/api/ai';
 
 const handleResponse = async (response: Response) => {
@@ -32,4 +34,16 @@ export const generateImageIdea = async (title: string, token: string): Promise<s
     });
     const data = await handleResponse(response);
     return data.idea;
+};
+
+export const fetchArticleAnalysis = async (articleId: string, token: string): Promise<ArticleAnalysis> => {
+    const response = await fetch(`${API_URL}/analyze-article`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ articleId })
+    });
+    return handleResponse(response);
 };

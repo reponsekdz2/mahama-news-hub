@@ -1,3 +1,5 @@
+
+
 export interface User {
   id: string;
   name: string;
@@ -38,6 +40,7 @@ export interface Poll {
 export interface Article {
   id: string;
   title: string;
+  summary: string;
   content: string;
   category: string;
   imageUrl: string;
@@ -67,6 +70,8 @@ export interface Comment {
     content: string;
     createdAt: string;
     userName: string;
+    status?: 'pending' | 'approved' | 'rejected';
+    articleTitle?: string;
 }
 
 export interface Collection {
@@ -84,4 +89,21 @@ export interface Notification {
     actorName: string;
     isRead: boolean;
     createdAt: string;
+}
+
+export interface ArticleAnalysis {
+  sentiment: 'Positive' | 'Negative' | 'Neutral';
+  keyTopics: string[];
+  seoKeywords: string[];
+  readabilityScore: string;
+}
+
+export interface RealtimeLockInfo {
+    userId: string;
+    userName: string;
+}
+
+export interface WebSocketMessage {
+    type: 'start_editing' | 'stop_editing' | 'initial_locks' | 'editing_conflict';
+    payload: any;
 }

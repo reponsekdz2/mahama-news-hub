@@ -57,15 +57,6 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
       setIsCollectionModalOpen(true);
   }
 
-  const createSnippet = (html: string, length: number) => {
-    const div = document.createElement('div');
-    div.innerHTML = html;
-    const text = div.textContent || div.innerText || '';
-    return text.length > length ? text.substring(0, length) + '...' : text;
-  };
-  
-  const snippet = createSnippet(article.content, 100);
-
   return (
     <>
       {isCollectionModalOpen && <SaveToCollectionModal article={article} onClose={() => setIsCollectionModalOpen(false)} />}
@@ -111,7 +102,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
         {/* Content container */}
         <div className="p-4 flex flex-col flex-grow">
           <div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{snippet}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{article.summary || ''}</p>
              {article.tags && article.tags.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {article.tags.map(tag => (

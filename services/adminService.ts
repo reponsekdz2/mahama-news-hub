@@ -1,4 +1,4 @@
-import { User } from '../types.ts';
+import { User, Comment } from '../types.ts';
 
 const API_URL = '/api';
 
@@ -48,3 +48,23 @@ export const deleteUser = async (userId: string, token: string): Promise<void> =
     });
     await handleResponse(response);
 };
+
+// Comment Moderation
+export const fetchPendingComments = async (token: string): Promise<Comment[]> => {
+    const response = await fetch(`${API_URL}/moderation/comments`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return handleResponse(response);
+}
+
+export const updateCommentStatus = async (commentId: string, status: 'approved' | 'rejected', token: string): Promise<void> => {
+    const response = await fetch(`${API_URL}/moderation/comments/${commentId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+    });
+    await handleResponse(response);
+}

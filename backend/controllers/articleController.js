@@ -26,7 +26,7 @@ const getArticles = async (req, res, next) => {
         const { topic, dateRange = 'all', sortBy = 'newest' } = req.query;
         let query = `
             SELECT 
-                a.id, a.title, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
+                a.id, a.title, a.summary, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
                 u.name as authorName,
                 (SELECT COUNT(*) FROM article_views WHERE article_id = a.id) as viewCount,
                 (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as likeCount,
@@ -117,7 +117,7 @@ const getRandomArticle = async (req, res, next) => {
         // This query is optimized for performance on large tables
         const [articles] = await db.query(`
             SELECT 
-                a.id, a.title, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
+                a.id, a.title, a.summary, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
                 u.name as authorName,
                 (SELECT COUNT(*) FROM article_views WHERE article_id = a.id) as viewCount,
                 (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as likeCount,
@@ -143,7 +143,7 @@ const getArticleById = async (req, res, next) => {
     try {
         const [articles] = await db.query(`
             SELECT 
-                a.id, a.title, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
+                a.id, a.title, a.summary, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.status,
                 u.name as authorName,
                 (SELECT COUNT(*) FROM article_views WHERE article_id = a.id) as viewCount,
                 (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as likeCount,
@@ -218,7 +218,7 @@ const getRelatedArticles = async (req, res, next) => {
 };
 
 const createArticle = async (req, res, next) => {
-    const { title, content, category, status, tags } = req.body;
+    const { title, summary, content, category, status, tags } = req.body;
     const author_id = req.user.id;
     const imageUrl = req.files.image ? `/uploads/${req.files.image[0].filename}` : null;
     const videoUrl = req.files.video ? `/uploads/${req.files.video[0].filename}` : null;
@@ -228,15 +228,15 @@ const createArticle = async (req, res, next) => {
     try {
         await connection.beginTransaction();
         const [result] = await connection.query(
-            'INSERT INTO articles (title, content, category, image_url, video_url, author_id, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [title, content, category, imageUrl, videoUrl, author_id, status || 'published']
+            'INSERT INTO articles (title, summary, content, category, image_url, video_url, author_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [title, summary, content, category, imageUrl, videoUrl, author_id, status || 'published']
         );
         const articleId = result.insertId;
         await handleArticleTags(connection, articleId, tags);
         await connection.commit();
         
         logAdminAction(req.user.id, 'create', 'article', articleId, { title, category });
-        res.status(201).json({ id: articleId, title, content, category, imageUrl, videoUrl, author_id, status, tags });
+        res.status(201).json({ id: articleId, title, summary, content, category, imageUrl, videoUrl, author_id, status, tags });
     } catch (error) {
         await connection.rollback();
         next(error);
@@ -246,7 +246,7 @@ const createArticle = async (req, res, next) => {
 };
 
 const updateArticle = async (req, res, next) => {
-    const { title, content, category, status, tags } = req.body;
+    const { title, summary, content, category, status, tags } = req.body;
     const articleId = req.params.id;
     const imageUrl = req.files.image ? `/uploads/${req.files.image[0].filename}` : req.body.imageUrl;
     const videoUrl = req.files.video ? `/uploads/${req.files.video[0].filename}` : req.body.videoUrl;
@@ -255,8 +255,8 @@ const updateArticle = async (req, res, next) => {
     try {
         await connection.beginTransaction();
         await connection.query(
-            'UPDATE articles SET title = ?, content = ?, category = ?, image_url = ?, video_url = ?, status = ? WHERE id = ?',
-            [title, content, category, imageUrl, videoUrl, status, articleId]
+            'UPDATE articles SET title = ?, summary = ?, content = ?, category = ?, image_url = ?, video_url = ?, status = ? WHERE id = ?',
+            [title, summary, content, category, imageUrl, videoUrl, status, articleId]
         );
         await handleArticleTags(connection, articleId, tags);
         await connection.commit();
@@ -329,7 +329,8 @@ const getCommentsForArticle = async (req, res, next) => {
         const [comments] = await db.query(`
             SELECT c.id, c.content, c.createdAt, u.name as userName FROM comments c
             JOIN users u ON c.user_id = u.id
-            WHERE c.article_id = ? ORDER BY c.createdAt DESC
+            WHERE c.article_id = ? AND c.status = 'approved'
+            ORDER BY c.createdAt DESC
         `, [req.params.id]);
         res.json(comments);
     } catch (error) {
@@ -345,11 +346,7 @@ const addCommentToArticle = async (req, res, next) => {
 
     try {
         const [result] = await db.query('INSERT INTO comments (article_id, user_id, content) VALUES (?, ?, ?)', [article_id, user_id, content]);
-        const [newComment] = await db.query(`
-            SELECT c.id, c.content, c.createdAt, u.name as userName FROM comments c
-            JOIN users u ON c.user_id = u.id WHERE c.id = ?
-        `, [result.insertId]);
-
+        
         const [commenters] = await db.query(
             'SELECT DISTINCT c.user_id FROM comments c JOIN user_preferences up ON c.user_id = up.user_id WHERE c.article_id = ? AND c.user_id != ? AND up.comment_notifications_enabled = 1',
             [article_id, user_id]
@@ -363,7 +360,7 @@ const addCommentToArticle = async (req, res, next) => {
         }
         
         logUserAction(user_id, 'comment', article_id, { commentId: result.insertId });
-        res.status(201).json(newComment[0]);
+        res.status(201).json({ message: "Comment submitted for moderation and will be visible after approval." });
     } catch (error) {
         next(error);
     }

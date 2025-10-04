@@ -2,7 +2,8 @@
 
 Mahama News TV is a feature-rich, personalized news application designed for a modern, interactive reading experience. It is built with a powerful backend and a responsive frontend, ready for deployment.
 
-**[Launch the Application on AI Studio](https://aistudio.google.com/app/YOUR_APP_ID)**  *(Note: Replace `YOUR_APP_ID` with the actual link after deployment)*
+**[Launch the Application on AI Studio]( https://ai.studio/apps/drive/1tCPFs3TxxWgLfyObgS8aiuSjX_cNI0GE
+)**  *(Note: Replace `YOUR_APP_ID` with the actual link after deployment)*
 
 ---
 
@@ -32,7 +33,7 @@ This application is packed with advanced features for users, administrators, and
 
 ### For Administrators (Admin Panel)
 
-A comprehensive, secure admin panel provides full control over the platform. The admin account can be accessed with email `reponsekdz0@gmail.com` and password `2025`.
+A comprehensive, secure admin panel provides full control over the platform. The admin account can be accessed with email `` and password ``.
 
 *   **Dashboard**: Get a high-level overview of site analytics, including user activity, engagement trends, top articles, and top categories.
 *   **Article Management**: A full CRUD (Create, Read, Update, Delete) interface for managing articles. The rich text editor allows for complex article creation.

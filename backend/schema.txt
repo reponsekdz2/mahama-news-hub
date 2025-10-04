@@ -139,10 +139,10 @@ CREATE TABLE collection_articles (
 CREATE TABLE user_preferences (
     user_id INT PRIMARY KEY,
     theme ENUM('light', 'dark') DEFAULT 'dark',
-    accentColor VARCHAR(50) DEFAULT 'red',
+    accent_color VARCHAR(50) DEFAULT 'red',
     language VARCHAR(5) DEFAULT 'en',
-    fontSize ENUM('sm', 'base', 'lg') DEFAULT 'base',
-    lineHeight ENUM('normal', 'relaxed', 'loose') DEFAULT 'normal',
+    font_size ENUM('sm', 'base', 'lg') DEFAULT 'base',
+    line_height ENUM('normal', 'relaxed', 'loose') DEFAULT 'normal',
     content_preferences JSON,
     newsletter_subscribed BOOLEAN DEFAULT FALSE,
     comment_notifications_enabled BOOLEAN DEFAULT TRUE,

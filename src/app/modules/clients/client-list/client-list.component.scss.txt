@@ -1,0 +1,39 @@
+.container {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table-header {
+  padding: 16px 24px;
+}
+
+.table-container {
+  position: relative;
+  max-height: 600px;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+}
+
+.status-chip {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+
+    &.active {
+        background-color: #e8f5e9; // green lighten-5
+        color: #388e3c; // green darken-2
+    }
+    &.pending {
+        background-color: #fff3e0; // orange lighten-5
+        color: #f57c00; // orange darken-2
+    }
+    &.closed {
+        background-color: #fbe9e7; // deep-orange lighten-5
+        color: #d84315; // deep-orange darken-3
+    }
+}

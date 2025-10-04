@@ -3,7 +3,7 @@ const db = require('../config/db');
 const generateRssFeed = async (req, res, next) => {
     try {
         const [articles] = await db.query(`
-            SELECT id, title, content, createdAt 
+            SELECT id, title, summary, createdAt 
             FROM articles 
             WHERE status = 'published' 
             ORDER BY createdAt DESC 
@@ -14,21 +14,18 @@ const generateRssFeed = async (req, res, next) => {
 
         const feedItems = articles.map(article => {
             const url = `${baseUrl}/article/${article.id}`;
-            // Create a simple text snippet
-            const snippet = article.content.replace(/<[^>]*>/g, '').substring(0, 200) + '...';
-
             return `
                 <item>
                     <title><![CDATA[${article.title}]]></title>
                     <link>${url}</link>
                     <guid>${url}</guid>
                     <pubDate>${new Date(article.createdAt).toUTCString()}</pubDate>
-                    <description><![CDATA[${snippet}]]></description>
+                    <description><![CDATA[${article.summary}]]></description>
                 </item>
             `;
         }).join('');
 
-        const rss = `
+        const rss = `<?xml version="1.0" encoding="UTF-8" ?>
             <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
                 <channel>
                     <title>Mahama News TV</title>
@@ -36,7 +33,7 @@ const generateRssFeed = async (req, res, next) => {
                     <description>Latest news from Mahama News TV</description>
                     <language>en-us</language>
                     <lastBuildDate>${new Date(articles[0]?.createdAt || Date.now()).toUTCString()}</lastBuildDate>
-                    <atom:link href="${baseUrl}/rss.xml" rel="self" type="application/rss+xml" />
+                    <atom:link href="${baseUrl}/api/utils/rss.xml" rel="self" type="application/rss+xml" />
                     ${feedItems}
                 </channel>
             </rss>
@@ -53,14 +50,14 @@ const generateRssFeed = async (req, res, next) => {
 const generateSitemap = async (req, res, next) => {
      try {
         const [articles] = await db.query(`
-            SELECT id, createdAt FROM articles WHERE status = 'published' ORDER BY createdAt DESC
+            SELECT id, updatedAt FROM articles WHERE status = 'published' ORDER BY updatedAt DESC
         `);
         
         const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
 
         const urlEntries = articles.map(article => {
             const url = `${baseUrl}/article/${article.id}`;
-            const lastMod = new Date(article.createdAt).toISOString();
+            const lastMod = new Date(article.updatedAt).toISOString();
             return `
                 <url>
                     <loc>${url}</loc>
@@ -81,7 +78,7 @@ const generateSitemap = async (req, res, next) => {
             </url>
         `;
 
-        const sitemap = `
+        const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
             <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
                 ${homeUrl}
                 ${urlEntries}

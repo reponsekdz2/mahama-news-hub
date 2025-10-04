@@ -1,0 +1,26 @@
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 24px;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1280px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .grid-item {
+    &.span-2 {
+      @media (min-width: 960px) {
+        grid-column: span 2;
+      }
+    }
+    &.span-4 {
+      @media (min-width: 1280px) {
+        grid-column: span 4;
+      }
+    }
+  }
+}

@@ -53,11 +53,26 @@ const ArticleManagement: React.FC = () => {
         setIsSubmitting(true);
         setError(null);
         try {
+            let submittedArticleId = articleId;
             if (articleId) {
                 await updateArticle(articleId, formData, user.token);
             } else {
-                await createArticle(formData, user.token);
+                const newArticle = await createArticle(formData, user.token);
+                submittedArticleId = newArticle.id;
             }
+
+            // After article is created/updated, handle the poll
+            const pollQuestion = formData.get('pollQuestion') as string;
+            const pollOptions = formData.getAll('pollOptions[]') as string[];
+
+            if (submittedArticleId && (pollQuestion || articleToEdit?.poll)) {
+                 await createOrUpdatePoll({
+                    articleId: submittedArticleId,
+                    question: pollQuestion,
+                    options: pollOptions,
+                }, user.token);
+            }
+
 
             setIsFormOpen(false);
             setArticleToEdit(null);

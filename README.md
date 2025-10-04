@@ -45,9 +45,9 @@ A comprehensive, secure admin panel provides full control over the platform. The
 ### Technical Features
 
 *   **Responsive Design**: The application is fully responsive and provides a seamless experience on devices of all sizes, from mobile phones to desktops.
-*   **Robust Backend**: Built with Node.js, Express, and MySQL, providing a secure and scalable foundation.
+*   **Robust Backend**: Built with Node.js, Express, and MySQL, providing a secure and scalable foundation. The database includes indexes for improved query performance.
 *   **Offline First (App Shell)**: Uses a Service Worker to cache the application shell for faster load times and offline availability.
-*   **SEO Optimized**: Generates dynamic meta tags for articles and provides `rss.xml` and `sitemap.xml` endpoints for better search engine indexing.
+*   **SEO Optimized**: Generates dynamic meta tags for articles and provides `/api/utils/rss.xml` and `/api/utils/sitemap.xml` endpoints for better search engine indexing and content syndication.
 
 ---
 

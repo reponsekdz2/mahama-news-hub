@@ -10,6 +10,7 @@ export interface User {
   subscriptionEndDate?: string;
   createdAt?: string;
   last_login?: string;
+  pushSubscription?: PushSubscription | null;
 }
 
 export interface AuthenticatedUser extends User {
@@ -51,18 +52,29 @@ export interface Article {
   tags?: string[];
   isLiked?: boolean;
   poll?: Poll;
+  metaTitle?: string;
+  metaDescription?: string;
 }
+
+export interface AdCampaign {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  budget: number;
+  status: 'active' | 'paused' | 'completed';
+  targetCategories: string[];
+}
+
 
 export interface Advertisement {
   id: string;
+  campaignId: string;
   title: string;
-  content: string;
-  imageUrl: string;
+  adType: 'image' | 'video';
+  assetUrl: string;
   linkUrl: string;
-  placement: 'sidebar' | 'in-feed';
   status: 'active' | 'paused';
-  startDate?: string;
-  endDate?: string;
   impressions: number;
   clicks: number;
 }
@@ -81,7 +93,7 @@ export interface Comment {
 export interface Collection {
   id: string;
   name: string;
-  userId: string;
+  userId?: string;
   articles?: Article[];
   articleCount?: number;
 }
@@ -105,4 +117,8 @@ export interface UserPreferences {
   contentPreferences?: string[];
   newsletter?: boolean;
   commentNotificationsEnabled?: boolean;
+}
+
+export interface SiteSettings {
+    [key: string]: string | boolean | number;
 }

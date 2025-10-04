@@ -3,8 +3,9 @@ import Header from './components/Header.tsx';
 import MainArticle from './components/MainArticle.tsx';
 import ArticleCard from './components/ArticleCard.tsx';
 import Spinner from './components/Spinner.tsx';
-import { Article } from './types.ts';
-import { fetchArticles, fetchRandomArticle } from './services/articleService.ts';
+import { Article, SiteSettings } from './types.ts';
+import { fetchArticles, fetchRandomArticle, getArticleById } from './services/articleService.ts';
+import { getSiteSettings } from './services/settingsService.ts';
 import { useAuth } from './contexts/AuthContext.tsx';
 import { useLanguage, CATEGORIES } from './contexts/LanguageContext.tsx';
 import { useSettings } from './contexts/SettingsContext.tsx';
@@ -21,9 +22,8 @@ import SearchOverlay from './components/SearchOverlay.tsx';
 import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
 import OfflineBanner from './components/OfflineBanner.tsx';
 import { MainArticleSkeleton, ArticleCardSkeleton } from './components/Skeletons.tsx';
-import SubscriptionModal from './components/SubscriptionModal.tsx';
 import SubscriptionPlanModal from './components/SubscriptionPlanModal.tsx';
-import Aside from './components/Aside.tsx';
+import Aside from './Aside.tsx';
 import TrendingArticles from './components/TrendingArticles.tsx';
 import MaintenancePage from './components/MaintenancePage.tsx';
 
@@ -49,7 +49,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({ dateRange: 'all', sortBy: 'newest' });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [isMaintenanceMode, setIsMaintenanceMode] = useState(false); // Can be fetched from settings
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
 
   const { user, isLoggedIn, login, hasActiveSubscription } = useAuth();
   const { loadUserSettings, isPersistenceLoading } = useSettings();
@@ -57,6 +57,21 @@ const App: React.FC = () => {
   const { fetchLibrary } = useLibrary();
 
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settings = await getSiteSettings();
+        setSiteSettings(settings);
+        document.title = (settings.site_title as string) || 'Mahama News TV';
+        const faviconLink = document.getElementById('favicon-link') as HTMLLinkElement;
+        if (faviconLink && settings.site_favicon_url) {
+          faviconLink.href = settings.site_favicon_url as string;
+        }
+      } catch (err) {
+        console.error("Failed to load site settings", err);
+      }
+    };
+    fetchSettings();
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
@@ -160,9 +175,15 @@ const App: React.FC = () => {
   const handleBackToNews = () => {
     setView('home');
     setSelectedArticle(null);
+     // Reset SEO tags when going back to the main view
+    document.title = (siteSettings.site_title as string) || 'Mahama News TV';
+    const metaDesc = document.getElementById('meta-description');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', 'A personalized news hub. Get the latest articles, customize your theme, and share stories with ease.');
+    }
   };
   
-  if (isMaintenanceMode) {
+  if (siteSettings.maintenance_mode === 'true' && user?.role !== 'admin') {
     return <MaintenancePage />;
   }
 
@@ -189,6 +210,7 @@ const App: React.FC = () => {
         const mainArticle = articles[0];
         const otherArticles = articles.slice(1);
         const title = view === 'searchResults' ? `Results for "${searchQuery}"` : selectedTopic;
+        const currentCategory = CATEGORIES.includes(selectedTopic) ? selectedTopic : mainArticle?.category;
 
         return (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -217,9 +239,14 @@ const App: React.FC = () => {
                     <p className="text-center py-12 text-gray-500 dark:text-gray-400">No articles found for this topic.</p>
                     )}
                 </div>
-                 <aside className="lg:col-span-3 space-y-8">
-                    <TrendingArticles onArticleSelect={handleSelectTrending} />
-                    <Aside onSubscribeClick={() => setIsSubscriptionModalOpen(true)} />
+                 <aside className="lg:col-span-3">
+                    <div className="sticky top-20 space-y-8">
+                        <TrendingArticles onArticleSelect={handleSelectTrending} />
+                        <Aside 
+                            category={currentCategory} 
+                            onSubscribeClick={() => setIsSubscriptionModalOpen(true)} 
+                        />
+                    </div>
                 </aside>
             </div>
         );
@@ -232,6 +259,7 @@ const App: React.FC = () => {
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300">
       {!isOnline && <OfflineBanner />}
       <Header
+        logoUrl={siteSettings.site_logo_url as string || ''}
         selectedTopic={selectedTopic}
         onTopicChange={handleTopicChange}
         onSearch={() => setIsSearchOverlayOpen(true)}

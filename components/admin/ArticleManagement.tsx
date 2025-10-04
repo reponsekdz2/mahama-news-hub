@@ -94,6 +94,7 @@ const ArticleManagement: React.FC = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase">Title</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase">Category</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Premium</th>
                                     <th className="px-6 py-3 text-right text-xs font-medium uppercase">Actions</th>
                                 </tr>
                             </thead>
@@ -106,6 +107,9 @@ const ArticleManagement: React.FC = () => {
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${article.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                                             {article.status}
                                         </span>
+                                    </td>
+                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        {article.isPremium ? 'Yes' : 'No'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <button onClick={() => handleOpenForm(article)} className="text-accent-600 hover:text-accent-900">Edit</button>

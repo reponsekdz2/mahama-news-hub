@@ -26,3 +26,17 @@ export const updateSiteSettings = async (settings: any, token: string): Promise<
     });
     return handleResponse(response);
 };
+
+// Admin-only route to upload logo/favicon
+export const uploadSiteAsset = async (assetType: 'logo' | 'favicon', file: File, token: string): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('asset', file);
+    formData.append('assetType', assetType);
+
+    const response = await fetch(`${API_URL}/site/asset`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+    });
+    return handleResponse(response);
+};

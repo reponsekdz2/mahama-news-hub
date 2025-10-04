@@ -1,1 +1,193 @@
-full contents of backend/schema.txt
+-- Users Table
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('user', 'admin') DEFAULT 'user',
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP NULL
+);
+
+-- Subscriptions Table
+CREATE TABLE subscriptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    status ENUM('free', 'trial', 'premium') DEFAULT 'free',
+    plan_type ENUM('monthly', 'yearly') NULL,
+    start_date DATE,
+    end_date DATE,
+    stripe_subscription_id VARCHAR(255) UNIQUE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+-- Articles Table
+CREATE TABLE articles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    summary TEXT,
+    content LONGTEXT NOT NULL,
+    category VARCHAR(255) NOT NULL,
+    image_url VARCHAR(255),
+    video_url VARCHAR(255),
+    author_id INT NOT NULL,
+    status ENUM('draft', 'published') DEFAULT 'draft',
+    is_premium BOOLEAN DEFAULT FALSE,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    meta_title VARCHAR(255),
+    meta_description VARCHAR(255),
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Ad Campaigns Table
+CREATE TABLE ad_campaigns (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    budget DECIMAL(10, 2) NOT NULL,
+    status ENUM('active', 'paused', 'completed') DEFAULT 'active',
+    target_categories JSON, -- Stores an array of category strings, e.g., ["Technology", "Science"]
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Advertisements Table
+CREATE TABLE advertisements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    campaign_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    ad_type ENUM('image', 'video') NOT NULL,
+    asset_url VARCHAR(255) NOT NULL,
+    link_url VARCHAR(255) NOT NULL,
+    status ENUM('active', 'paused') DEFAULT 'active',
+    impressions INT DEFAULT 0,
+    clicks INT DEFAULT 0,
+    FOREIGN KEY (campaign_id) REFERENCES ad_campaigns(id) ON DELETE CASCADE
+);
+
+
+-- Comments Table
+CREATE TABLE comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    content TEXT NOT NULL,
+    user_id INT NOT NULL,
+    article_id INT NOT NULL,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+
+-- Tags & Article-Tags Junction Table
+CREATE TABLE tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE
+);
+CREATE TABLE article_tags (
+    article_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    PRIMARY KEY (article_id, tag_id),
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+
+-- Article Likes Table (Many-to-Many)
+CREATE TABLE article_likes (
+    user_id INT NOT NULL,
+    article_id INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, article_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+
+-- Article Views Table
+CREATE TABLE article_views (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT, -- Can be null for guest views
+    article_id INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+
+
+-- Collections & Collection-Articles Junction Table
+CREATE TABLE collections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE collection_articles (
+    collection_id INT NOT NULL,
+    article_id INT NOT NULL,
+    PRIMARY KEY (collection_id, article_id),
+    FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+
+-- User Preferences Table
+CREATE TABLE user_preferences (
+    user_id INT PRIMARY KEY,
+    theme ENUM('light', 'dark') DEFAULT 'dark',
+    accentColor VARCHAR(50) DEFAULT 'red',
+    language VARCHAR(5) DEFAULT 'en',
+    fontSize ENUM('sm', 'base', 'lg') DEFAULT 'base',
+    lineHeight ENUM('normal', 'relaxed', 'loose') DEFAULT 'normal',
+    content_preferences JSON,
+    newsletter_subscribed BOOLEAN DEFAULT FALSE,
+    comment_notifications_enabled BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Notifications Table
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL, -- The user who receives the notification
+    actor_name VARCHAR(255), -- The user who triggered the notification
+    type ENUM('new_comment', 'article_mention', 'system') NOT NULL,
+    related_article_id INT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (related_article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+
+-- Push Subscriptions Table
+CREATE TABLE push_subscriptions (
+    user_id INT PRIMARY KEY,
+    subscription_object JSON NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+-- Site Settings Table (Key-Value Store)
+CREATE TABLE site_settings (
+    setting_key VARCHAR(255) PRIMARY KEY,
+    setting_value TEXT
+);
+
+-- Action Logs
+CREATE TABLE admin_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    admin_user_id INT NOT NULL,
+    action_type ENUM('create', 'update', 'delete') NOT NULL,
+    target_type VARCHAR(255) NOT NULL,
+    target_id INT,
+    details JSON,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE user_actions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    action_type VARCHAR(255) NOT NULL, -- e.g., 'view', 'like', 'comment', 'share'
+    target_id INT, -- e.g., article_id
+    details JSON, -- e.g., { "platform": "twitter" } for a share
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

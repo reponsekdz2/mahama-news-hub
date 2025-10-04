@@ -45,7 +45,8 @@ const AdBanner: React.FC<AdBannerProps> = ({ ad, viewedAds }) => {
         {t('advertisement')}
       </span>
       <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" onClick={handleClick}>
-        <img className="h-48 w-full object-cover" src={ad.imageUrl} alt={ad.title} />
+        {/* FIX: Use `assetUrl` instead of `imageUrl` to match the Advertisement type. */}
+        <img className="h-48 w-full object-cover" src={ad.assetUrl} alt={ad.title} />
         <div className="p-4">
           <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-tight truncate">{ad.title}</h3>
         </div>

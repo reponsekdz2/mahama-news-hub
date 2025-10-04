@@ -1,12 +1,29 @@
-<script type="importmap">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF--8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" id="favicon-link" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mahama News TV</title>
+    <meta id="meta-description" name="description" content="A personalized news hub. Get the latest articles, customize your theme, and share stories with ease." />
+    <script type="importmap">
 {
   "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react-quill": "https://esm.sh/react-quill@2.0.0",
+    "chart.js": "https://esm.sh/chart.js@4.4.2",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "chart.js": "https://aistudiocdn.com/chart.js@^4.5.0",
-    "react-quill": "https://aistudiocdn.com/react-quill@^2.0.0"
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
   }
 }
 </script>
-full contents of index.html
+    <link rel="stylesheet" href="https://cdn.tailwindcss.com"></link>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css">
+    <link rel="stylesheet" href="./index.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { User } from '../../types.ts';
 import { fetchUsers, updateUserRole, deleteUser } from '../../services/adminService.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 import Spinner from '../Spinner.tsx';
 import SubscriptionEditModal from './SubscriptionEditModal.tsx';
+
+type SortKey = keyof User | 'subscription';
 
 const UserManagement: React.FC = () => {
     const { user: adminUser } = useAuth();
@@ -11,7 +13,9 @@ const UserManagement: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [editingUser, setEditingUser] = useState<User | null>(null);
-
+    
+    const [filterText, setFilterText] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'ascending' | 'descending' } | null>({ key: 'name', direction: 'ascending' });
 
     const loadUsers = useCallback(async () => {
         if (!adminUser?.token) return;
@@ -29,6 +33,58 @@ const UserManagement: React.FC = () => {
     useEffect(() => {
         loadUsers();
     }, [loadUsers]);
+    
+    const sortedAndFilteredUsers = useMemo(() => {
+        let filtered = [...users];
+
+        if (filterText) {
+            filtered = filtered.filter(user =>
+                user.name.toLowerCase().includes(filterText.toLowerCase()) ||
+                user.email.toLowerCase().includes(filterText.toLowerCase())
+            );
+        }
+
+        if (sortConfig !== null) {
+            filtered.sort((a, b) => {
+                let aValue: string | undefined | null;
+                let bValue: string | undefined | null;
+
+                if (sortConfig.key === 'subscription') {
+                    aValue = a.subscriptionStatus || 'free';
+                    bValue = b.subscriptionStatus || 'free';
+                } else {
+                    aValue = a[sortConfig.key as keyof User] as string | undefined | null;
+                    bValue = b[sortConfig.key as keyof User] as string | undefined | null;
+                }
+                
+                if (aValue === null || aValue === undefined) return 1;
+                if (bValue === null || bValue === undefined) return -1;
+                
+                if (aValue.toLowerCase() < bValue.toLowerCase()) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (aValue.toLowerCase() > bValue.toLowerCase()) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return filtered;
+    }, [users, filterText, sortConfig]);
+
+    const requestSort = (key: SortKey) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIndicator = (key: SortKey) => {
+        if (!sortConfig || sortConfig.key !== key) return null;
+        return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
+    };
+
 
     const handleRoleChange = async (userId: string, role: 'user' | 'admin') => {
         if (!adminUser?.token) return;
@@ -50,6 +106,15 @@ const UserManagement: React.FC = () => {
         }
     };
     
+    const SortableHeader: React.FC<{ sortKey: SortKey, children: React.ReactNode, className?: string, isRightAligned?: boolean }> = ({ sortKey, children, className, isRightAligned }) => (
+        <th scope="col" className={`px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider ${isRightAligned ? 'text-right' : 'text-left'} ${className}`}>
+            <button onClick={() => requestSort(sortKey)} className="w-full text-inherit flex items-center gap-1">
+                {children}
+                <span className="text-accent-500">{getSortIndicator(sortKey)}</span>
+            </button>
+        </th>
+    );
+    
     if (isLoading) return <Spinner />;
 
     return (
@@ -63,19 +128,30 @@ const UserManagement: React.FC = () => {
             )}
             <h2 className="text-xl font-bold mb-4">Manage Users ({users.length})</h2>
             {error && <p className="text-red-500 mb-4 bg-red-100 dark:bg-red-900/50 p-3 rounded-md">{error}</p>}
+            
+            <div className="mb-4">
+                <input
+                    type="text"
+                    placeholder="Filter by name or email..."
+                    value={filterText}
+                    onChange={e => setFilterText(e.target.value)}
+                    className="block w-full max-w-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700"
+                />
+            </div>
+
             <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Email</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Subscription</th>
+                            <SortableHeader sortKey="name">Name</SortableHeader>
+                            <SortableHeader sortKey="email">Email</SortableHeader>
+                            <SortableHeader sortKey="role">Role</SortableHeader>
+                            <SortableHeader sortKey="subscription">Subscription</SortableHeader>
                             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {users.map(user => (
+                        {sortedAndFilteredUsers.map(user => (
                             <tr key={user.id}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{user.name}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{user.email}</td>
@@ -115,6 +191,9 @@ const UserManagement: React.FC = () => {
                         ))}
                     </tbody>
                 </table>
+                 {sortedAndFilteredUsers.length === 0 && (
+                    <p className="text-center py-8 text-gray-500 dark:text-gray-400">No users found matching your filter.</p>
+                )}
             </div>
         </div>
     );

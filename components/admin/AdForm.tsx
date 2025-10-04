@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Advertisement } from '../../types.ts';
+import { Advertisement, AdCampaign } from '../../types.ts';
 import { createAd, updateAd } from '../../services/adService.ts';
+import { fetchCampaigns } from '../../services/campaignService.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 
 interface AdFormProps {
@@ -11,39 +12,41 @@ interface AdFormProps {
 
 const AdForm: React.FC<AdFormProps> = ({ adToEdit, onFormSubmit, onCancel }) => {
     const { user } = useAuth();
-    const [formData, setFormData] = useState({
-        title: '',
-        linkUrl: '',
-        placement: 'sidebar',
-        status: 'active',
-    });
-    const [image, setImage] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [title, setTitle] = useState('');
+    const [linkUrl, setLinkUrl] = useState('');
+    const [status, setStatus] = useState<'active' | 'paused'>('active');
+    const [campaignId, setCampaignId] = useState('');
+    const [adType, setAdType] = useState<'image' | 'video'>('image');
+    const [asset, setAsset] = useState<File | null>(null);
+    const [assetPreview, setAssetPreview] = useState<string | null>(null);
+    
+    const [campaigns, setCampaigns] = useState<AdCampaign[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const imageInputRef = useRef<HTMLInputElement>(null);
+    const assetInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if(adToEdit) {
-            setFormData({
-                title: adToEdit.title,
-                linkUrl: adToEdit.linkUrl,
-                placement: adToEdit.placement,
-                status: adToEdit.status,
-            });
-            setImagePreview(adToEdit.imageUrl);
+        if (user?.token) {
+            fetchCampaigns(user.token).then(setCampaigns).catch(console.error);
+        }
+    }, [user?.token]);
+
+    useEffect(() => {
+        if (adToEdit) {
+            setTitle(adToEdit.title);
+            setLinkUrl(adToEdit.linkUrl);
+            setStatus(adToEdit.status);
+            setCampaignId(adToEdit.campaignId);
+            setAdType(adToEdit.adType);
+            setAssetPreview(adToEdit.assetUrl);
         }
     }, [adToEdit]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData({...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAssetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            setImage(file);
-            setImagePreview(URL.createObjectURL(file));
+            setAsset(file);
+            setAssetPreview(URL.createObjectURL(file));
         }
     };
     
@@ -52,14 +55,16 @@ const AdForm: React.FC<AdFormProps> = ({ adToEdit, onFormSubmit, onCancel }) => 
         if(!user?.token) return;
 
         const formPayload = new FormData();
-        formPayload.append('title', formData.title);
-        formPayload.append('linkUrl', formData.linkUrl);
-        formPayload.append('placement', formData.placement);
-        formPayload.append('status', formData.status);
-        if (image) {
-            formPayload.append('image', image);
-        } else if (adToEdit?.imageUrl) {
-            formPayload.append('imageUrl', adToEdit.imageUrl);
+        formPayload.append('title', title);
+        formPayload.append('linkUrl', linkUrl);
+        formPayload.append('status', status);
+        formPayload.append('campaignId', campaignId);
+        formPayload.append('adType', adType);
+        
+        if (asset) {
+            formPayload.append('asset', asset);
+        } else if (adToEdit?.assetUrl) {
+            formPayload.append('assetUrl', adToEdit.assetUrl);
         }
         
         setIsLoading(true);
@@ -80,44 +85,52 @@ const AdForm: React.FC<AdFormProps> = ({ adToEdit, onFormSubmit, onCancel }) => 
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-            <h2 className="text-xl font-bold">{adToEdit ? 'Edit' : 'Create'} Ad</h2>
+            <h2 className="text-xl font-bold">{adToEdit ? 'Edit' : 'Create'} Advertisement</h2>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             
-            <div>
-                <label className="block text-sm font-medium">Title</label>
-                <input type="text" name="title" value={formData.title} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm" />
-            </div>
-            <div>
-                <label className="block text-sm font-medium">Link URL</label>
-                <input type="url" name="linkUrl" value={formData.linkUrl} onChange={handleChange} required className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm" />
-            </div>
-            <div>
-                <label className="block text-sm font-medium">Image</label>
-                <div className="mt-2 flex items-center space-x-4">
-                    {imagePreview && <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-md" />}
-                    <button type="button" onClick={() => imageInputRef.current?.click()} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium">
-                        Upload Image
-                    </button>
-                    <input type="file" accept="image/*" ref={imageInputRef} onChange={handleImageChange} className="hidden" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="col-span-2">
+                    <label className="block text-sm font-medium">Campaign</label>
+                    <select value={campaignId} onChange={e => setCampaignId(e.target.value)} required className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm">
+                        <option value="">Select a Campaign</option>
+                        {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
                 </div>
-            </div>
-             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium">Placement</label>
-                    <select name="placement" value={formData.placement} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm">
-                        <option value="sidebar">Sidebar</option>
-                        <option value="in-feed">In-Feed</option>
+                    <label className="block text-sm font-medium">Title</label>
+                    <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm" />
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium">Link URL</label>
+                    <input type="url" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} required className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium">Ad Type</label>
+                    <select value={adType} onChange={e => setAdType(e.target.value as any)} className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm">
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
                     </select>
                 </div>
                 <div>
                     <label className="block text-sm font-medium">Status</label>
-                    <select name="status" value={formData.status} onChange={handleChange} className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm">
+                    <select value={status} onChange={e => setStatus(e.target.value as any)} className="mt-1 block w-full rounded-md dark:bg-gray-700 border-gray-300 dark:border-gray-600 shadow-sm">
                         <option value="active">Active</option>
                         <option value="paused">Paused</option>
                     </select>
                 </div>
             </div>
 
+            <div>
+                <label className="block text-sm font-medium">Creative Asset</label>
+                <div className="mt-2 flex items-center space-x-4">
+                    {assetPreview && adType === 'image' && <img src={assetPreview} alt="Preview" className="w-20 h-20 object-cover rounded-md" />}
+                    {assetPreview && adType === 'video' && <video src={assetPreview} className="w-32 h-20 bg-black object-cover rounded-md" />}
+                    <button type="button" onClick={() => assetInputRef.current?.click()} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium">
+                        Upload Asset
+                    </button>
+                    <input type="file" accept={adType === 'image' ? 'image/*' : 'video/*'} ref={assetInputRef} onChange={handleAssetChange} className="hidden" />
+                </div>
+            </div>
 
             <div className="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700">
                 <button type="button" onClick={onCancel} className="px-4 py-2 border rounded-md text-sm font-medium">Cancel</button>

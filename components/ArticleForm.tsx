@@ -2,9 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactQuill from 'react-quill';
 import { Article } from '../types.ts';
 import { useLanguage, CATEGORIES } from '../contexts/LanguageContext.tsx';
-import { improveWriting, generateImageIdea } from '../services/aiService.ts';
-import { summarizeContent } from '../services/geminiService.ts';
-import { useAuth } from '../contexts/AuthContext.tsx';
 
 interface ArticleFormProps {
   articleToEdit?: Partial<Article> | null;
@@ -15,7 +12,6 @@ interface ArticleFormProps {
 
 const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, onCancel, isLoading }) => {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
@@ -30,10 +26,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
   // Poll State
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
-  
-  const [isAiLoading, setIsAiLoading] = useState<null | 'summary' | 'writing' | 'idea'>(null);
-  const [imageIdea, setImageIdea] = useState('');
-  const [aiError, setAiError] = useState('');
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -99,48 +91,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
           setPollOptions(pollOptions.filter((_, i) => i !== index));
       }
   };
-  
-  const handleGenerateSummary = async () => {
-    if(!user?.token || !content) return;
-    setIsAiLoading('summary');
-    setAiError('');
-    try {
-        const result = await summarizeContent({ title, content });
-        setSummary(result);
-    } catch (err) {
-        setAiError(err instanceof Error ? err.message : 'Failed to generate summary.');
-    } finally {
-        setIsAiLoading(null);
-    }
-  };
-  
-  const handleImproveWriting = async () => {
-    if(!user?.token || !content) return;
-    setIsAiLoading('writing');
-    setAiError('');
-    try {
-        const improved = await improveWriting(content, user.token);
-        setContent(improved);
-    } catch (err) {
-        setAiError(err instanceof Error ? err.message : 'Failed to improve text.');
-    } finally {
-        setIsAiLoading(null);
-    }
-  }
-  
-  const handleGenerateImageIdea = async () => {
-      if(!user?.token || !title) return;
-      setIsAiLoading('idea');
-      setAiError('');
-      try {
-          const idea = await generateImageIdea(title, user.token);
-          setImageIdea(idea);
-      } catch(err) {
-          setAiError(err instanceof Error ? err.message : 'Failed to generate idea.');
-      } finally {
-          setIsAiLoading(null);
-      }
-  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,7 +123,6 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {aiError && <p className="text-red-500 text-sm mb-4">{aiError}</p>}
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Title
@@ -189,14 +138,9 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       </div>
       
       <div>
-        <div className="flex justify-between items-center">
-            <label htmlFor="summary" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {t('summary')}
-            </label>
-            <button type="button" onClick={handleGenerateSummary} disabled={isAiLoading === 'summary' || !content} className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline disabled:opacity-50 disabled:no-underline">
-                {isAiLoading === 'summary' ? t('generating') : t('generateSummary')}
-            </button>
-        </div>
+        <label htmlFor="summary" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {t('summary')}
+        </label>
         <textarea
           id="summary"
           value={summary}
@@ -252,28 +196,17 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       </div>
 
       <div>
-        <div className="flex justify-between items-center">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Content
-            </label>
-            <button type="button" onClick={handleImproveWriting} disabled={isAiLoading === 'writing' || !content} className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline disabled:opacity-50 disabled:no-underline">
-                {isAiLoading === 'writing' ? t('generating') : t('improveWriting')}
-            </button>
-        </div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Content
+        </label>
         <ReactQuill theme="snow" value={content} onChange={setContent} className="mt-1 bg-white dark:bg-gray-700 dark:text-white" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <div className="flex justify-between items-center">
-                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Cover Image
-                </label>
-                 <button type="button" onClick={handleGenerateImageIdea} disabled={isAiLoading === 'idea' || !title} className="text-xs font-semibold text-accent-600 dark:text-accent-400 hover:underline disabled:opacity-50 disabled:no-underline">
-                    {isAiLoading === 'idea' ? t('generating') : t('generateImageIdea')}
-                </button>
-            </div>
-            {imageIdea && <textarea readOnly value={imageIdea} className="mt-2 w-full text-sm p-2 rounded-md bg-gray-100 dark:bg-gray-900 border dark:border-gray-600" rows={3}/>}
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Cover Image
+            </label>
             <div className="mt-2 flex items-center space-x-4">
               {imagePreview && <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-md" />}
               <button

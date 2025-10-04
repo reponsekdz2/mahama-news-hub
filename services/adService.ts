@@ -1,4 +1,4 @@
-import { Advertisement } from '../types.ts';
+import { Advertisement, AdCampaign } from '../types.ts';
 
 const API_URL = '/api/ads';
 
@@ -14,17 +14,10 @@ const handleResponse = async (response: Response) => {
 };
 
 // Public
-export const fetchSidebarAds = async (): Promise<Advertisement[]> => {
-    const response = await fetch(`${API_URL}/sidebar`);
+export const fetchSidebarAds = async (category?: string): Promise<Advertisement[]> => {
+    const url = category ? `${API_URL}/sidebar?category=${encodeURIComponent(category)}` : `${API_URL}/sidebar`;
+    const response = await fetch(url);
     return handleResponse(response);
-};
-
-export const trackAdImpression = async (adId: string): Promise<void> => {
-    await fetch(`${API_URL}/${adId}/impression`, { method: 'POST' });
-};
-
-export const trackAdClick = async (adId: string): Promise<void> => {
-    await fetch(`${API_URL}/${adId}/click`, { method: 'POST' });
 };
 
 // Admin
@@ -58,4 +51,22 @@ export const deleteAd = async (id: string, token: string): Promise<void> => {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
     });
+};
+
+// FIX: Add trackAdImpression to track when an ad is viewed.
+export const trackAdImpression = async (adId: string): Promise<void> => {
+    try {
+        await fetch(`${API_URL}/${adId}/impression`, { method: 'POST' });
+    } catch (error) {
+        console.error('Failed to track ad impression', error);
+    }
+};
+
+// FIX: Add trackAdClick to track when an ad is clicked.
+export const trackAdClick = async (adId: string): Promise<void> => {
+    try {
+        await fetch(`${API_URL}/${adId}/click`, { method: 'POST' });
+    } catch (error) {
+        console.error('Failed to track ad click', error);
+    }
 };

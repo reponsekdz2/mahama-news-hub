@@ -52,7 +52,6 @@ export const deleteCampaign = async (id: string, token: string): Promise<void> =
     });
 };
 
-// FIX: Add sendCampaign function for sending newsletter campaigns.
 export const sendCampaign = async (campaignData: { subject: string, content: string }, token: string): Promise<{ message: string }> => {
     const response = await fetch(`${API_URL}/send-newsletter`, {
         method: 'POST',

@@ -10,10 +10,14 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  public state: ErrorBoundaryState = {
-    hasError: false,
-    error: undefined,
-  };
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: undefined,
+    };
+    this.handleReport = this.handleReport.bind(this);
+  }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -24,7 +28,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     // Here you would typically log the error to a service like Sentry
   }
 
-  private handleReport = () => {
+  private handleReport() {
     const subject = "Mahama News TV - Application Error Report";
     const body = `
       Hello Support Team,
@@ -43,7 +47,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       A concerned user
     `;
     window.location.href = `mailto:support@mahamanews.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  };
+  }
 
   render() {
     if (this.state.hasError) {

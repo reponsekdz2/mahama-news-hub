@@ -63,7 +63,6 @@ const deleteCampaign = async (req, res, next) => {
     }
 };
 
-// FIX: Add controller for sending newsletter campaigns.
 const sendNewsletterCampaign = async (req, res, next) => {
     const { subject, content } = req.body;
     if (!subject || !content) {
@@ -100,6 +99,5 @@ module.exports = {
     createCampaign,
     updateCampaign,
     deleteCampaign,
-    // FIX: Export new controller function.
     sendNewsletterCampaign,
 };

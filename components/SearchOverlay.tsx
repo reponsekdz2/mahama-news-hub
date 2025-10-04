@@ -8,7 +8,7 @@ import useDebounce from '../hooks/useDebounce.ts';
 import Spinner from './Spinner.tsx';
 import { SearchFilters } from '../App.tsx';
 
-// FIX: Add type definitions for Web Speech API to resolve TypeScript errors.
+// Add type definitions for Web Speech API to resolve TypeScript errors.
 interface SpeechRecognition extends EventTarget {
     continuous: boolean;
     lang: string;
@@ -50,7 +50,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     useEffect(() => {
         if ('webkitSpeechRecognition' in window) {
-            // FIX: Instantiate SpeechRecognition from the window object.
+            // Instantiate SpeechRecognition from the window object.
             const recognition = new window.webkitSpeechRecognition();
             recognition.continuous = false;
             recognition.lang = 'en-US';

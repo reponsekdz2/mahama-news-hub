@@ -18,7 +18,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose }) => {
         setIsSubscribing(true);
         setError('');
         try {
-            // FIX: Pass the 'monthly' plan type to createSubscription as required by its signature.
+            // Pass the 'monthly' plan type to createSubscription as required by its signature.
             await createSubscription('monthly', user.token);
             await refreshUser(); // Refresh user context to get new subscription status
             onClose();

@@ -30,7 +30,7 @@ const getSidebarAds = async (req, res, next) => {
             LIMIT 2
         `;
         const [ads] = await db.query(query, [category, category]);
-        res.json(ads.map(ad => ({...ad, assetUrl: ad.asset_url, adType: ad.ad_type, linkUrl: ad.link_url})));
+        res.json(ads.map(ad => ({...ad, assetUrl: ad.asset_url, adType: ad.ad_type, linkUrl: ad.link_url, campaignId: ad.campaign_id})));
     } catch (error) {
         next(error);
     }
@@ -102,24 +102,19 @@ const deleteAd = async (req, res, next) => {
     }
 };
 
-// FIX: Add controller to track ad impressions.
 const trackAdImpression = async (req, res, next) => {
     try {
-        // Assuming an ad_impressions table exists with at least an ad_id column
-        await db.query('INSERT INTO ad_impressions (ad_id) VALUES (?)', [req.params.id]);
+        await db.query('UPDATE advertisements SET impressions = impressions + 1 WHERE id = ?', [req.params.id]);
         res.status(204).send();
     } catch (error) {
-        // Don't crash the server if tracking fails, just log it.
         console.error('Failed to track ad impression:', error);
-        res.status(204).send(); // Still send success to not break client
+        res.status(204).send();
     }
 };
 
-// FIX: Add controller to track ad clicks.
 const trackAdClick = async (req, res, next) => {
     try {
-        // Assuming an ad_clicks table exists with at least an ad_id column
-        await db.query('INSERT INTO ad_clicks (ad_id) VALUES (?)', [req.params.id]);
+        await db.query('UPDATE advertisements SET clicks = clicks + 1 WHERE id = ?', [req.params.id]);
         res.status(204).send();
     } catch (error) {
         console.error('Failed to track ad click:', error);

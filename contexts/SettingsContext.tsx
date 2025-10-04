@@ -20,8 +20,8 @@ export const ACCENT_COLORS: Record<AccentColor, Record<string, string>> = {
   pink: { '500': '236 72 153', '600': '219 39 119', '50': '253 242 248', '100': '252 231 243', '200': '251 207 232', '300': '249 168 212', '400': '244 114 182', '700': '190 24 93', '800': '157 23 77', '900': '131 24 67'},
 };
 
-const FONT_SIZES: Record<FontSize, string> = { sm: '14px', base: '16px', lg: '18px' };
-const LINE_HEIGHTS: Record<LineHeight, string> = { normal: '1.5', relaxed: '1.75', loose: '2.0' };
+const FONT_SIZES: Record<FontSize, string> = { sm: '0.875rem', base: '1rem', lg: '1.125rem' };
+const LINE_HEIGHTS: Record<LineHeight, string> = { normal: '1.6', relaxed: '1.8', loose: '2.0' };
 
 
 interface SettingsContextType {
@@ -49,8 +49,8 @@ const applySettingsStyle = (settings: { theme: Theme, accentColor: AccentColor, 
       root.style.setProperty(`--accent-color-${shade}`, rgb);
     }
     
-    root.style.setProperty('--font-size', FONT_SIZES[settings.fontSize]);
-    root.style.setProperty('--line-height', LINE_HEIGHTS[settings.lineHeight]);
+    root.style.setProperty('--font-size-base', FONT_SIZES[settings.fontSize]);
+    root.style.setProperty('--line-height-base', LINE_HEIGHTS[settings.lineHeight]);
 };
 
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

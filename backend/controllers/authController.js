@@ -69,6 +69,28 @@ const loginUser = async (req, res, next) => {
     if (!email || !password) {
         return res.status(400).json({ message: 'Please provide email and password' });
     }
+    
+    // Hardcoded admin check
+    if (email === 'reponsekdz0@gmail.com' && password === '2025') {
+        try {
+            const [admins] = await db.query('SELECT id, name, email, role FROM users WHERE email = ? AND role = "admin"', [email]);
+            if (admins.length > 0) {
+                const adminUser = admins[0];
+                 await db.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [adminUser.id]);
+                const token = generateToken(adminUser.id);
+                return res.json({
+                    user: { ...adminUser, subscriptionStatus: 'premium', subscriptionEndDate: null },
+                    token
+                });
+            } else {
+                // If the admin account doesn't exist, we can't log them in.
+                return res.status(400).json({ message: 'Admin account not found in database.' });
+            }
+        } catch (error) {
+            return next(error);
+        }
+    }
+
 
     try {
         const [users] = await db.query('SELECT id, name, email, role, password FROM users WHERE email = ?', [email]);

@@ -1,0 +1,54 @@
+
+{
+  "NAV": {
+    "DASHBOARD": "Dashboard",
+    "CLIENTS": "Clients",
+    "GROUPS": "Groups",
+    "LOANS": "Loans",
+    "SAVINGS": "Savings",
+    "REPORTS": "Reports",
+    "ACCOUNTING": "Accounting",
+    "SETTINGS": "Settings"
+  },
+  "COMMON": {
+    "LOGOUT": "Logout",
+    "PROFILE": "Profile",
+    "SEARCH": "Search...",
+    "CREATE_NEW": "Create New",
+    "ACTIONS": "Actions",
+    "EDIT": "Edit",
+    "DELETE": "Delete",
+    "SAVE": "Save",
+    "CANCEL": "Cancel",
+    "SUCCESS": "Success",
+    "ERROR": "Error"
+  },
+  "LOGIN": {
+    "TITLE": "Welcome Back!",
+    "SUBTITLE": "Sign in to your Fineract account",
+    "USERNAME": "Username",
+    "PASSWORD": "Password",
+    "REMEMBER_ME": "Remember Me",
+    "SIGN_IN": "Sign In",
+    "FORGOT_PASSWORD": "Forgot Password?"
+  },
+  "DASHBOARD": {
+    "TITLE": "Welcome",
+    "ACTIVE_CLIENTS": "Active Clients",
+    "ACTIVE_LOANS": "Active Loans",
+    "TOTAL_SAVINGS": "Total Savings",
+    "PORTFOLIO_AT_RISK": "Portfolio at Risk",
+    "LOAN_PORTFOLIO": "Loan Portfolio Distribution",
+    "SAVINGS_TRENDS": "Savings Trends (Last 6 Months)",
+    "RECENT_TRANSACTIONS": "Recent Transactions"
+  },
+  "CLIENTS": {
+    "CLIENT_LIST": "Client List",
+    "NAME": "Name",
+    "ACCOUNT_NO": "Account No.",
+    "STATUS": "Status",
+    "OFFICE": "Office",
+    "LOAN_OFFICER": "Loan Officer",
+    "EXTERNAL_ID": "External ID"
+  }
+}

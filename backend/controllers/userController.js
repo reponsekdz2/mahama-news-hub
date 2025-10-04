@@ -138,17 +138,31 @@ const getUserPreferences = async (req, res, next) => {
 // @desc    Update current user's preferences
 const updateUserPreferences = async (req, res, next) => {
     const userId = req.user.id;
-    const { theme, accentColor, language, contentPreferences, newsletter, commentNotificationsEnabled, fontSize, lineHeight } = req.body;
+    const preferences = req.body;
+    
     let query = 'UPDATE user_preferences SET';
     const params = [];
-    if (theme) { query += ' theme = ?,'; params.push(theme); }
-    if (accentColor) { query += ' accentColor = ?,'; params.push(accentColor); }
-    if (language) { query += ' language = ?,'; params.push(language); }
-    if (fontSize) { query += ' fontSize = ?,'; params.push(fontSize); }
-    if (lineHeight) { query += ' lineHeight = ?,'; params.push(lineHeight); }
-    if (contentPreferences) { query += ' content_preferences = ?,'; params.push(JSON.stringify(contentPreferences)); }
-    if (typeof newsletter === 'boolean') { query += ' newsletter_subscribed = ?,'; params.push(newsletter); }
-    if (typeof commentNotificationsEnabled === 'boolean') { query += ' comment_notifications_enabled = ?,'; params.push(commentNotificationsEnabled); }
+    
+    for (const key in preferences) {
+        if (Object.prototype.hasOwnProperty.call(preferences, key)) {
+            const value = preferences[key];
+            const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase(); // convert camelCase to snake_case
+            query += ` ${dbKey} = ?,`;
+
+            if (key === 'contentPreferences') {
+                params.push(JSON.stringify(value));
+            } else if (typeof value === 'boolean') {
+                 params.push(value);
+            }
+            else {
+                params.push(value);
+            }
+        }
+    }
+
+    if (params.length === 0) {
+        return res.status(204).send();
+    }
     
     query = query.slice(0, -1) + ' WHERE user_id = ?';
     params.push(userId);

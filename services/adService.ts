@@ -53,7 +53,6 @@ export const deleteAd = async (id: string, token: string): Promise<void> => {
     });
 };
 
-// FIX: Add trackAdImpression to track when an ad is viewed.
 export const trackAdImpression = async (adId: string): Promise<void> => {
     try {
         await fetch(`${API_URL}/${adId}/impression`, { method: 'POST' });
@@ -62,7 +61,6 @@ export const trackAdImpression = async (adId: string): Promise<void> => {
     }
 };
 
-// FIX: Add trackAdClick to track when an ad is clicked.
 export const trackAdClick = async (adId: string): Promise<void> => {
     try {
         await fetch(`${API_URL}/${adId}/click`, { method: 'POST' });

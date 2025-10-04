@@ -10,7 +10,10 @@ import { urlBase64ToUint8Array } from './utils/pushHelper.ts';
 import { subscribeToPushNotifications } from './services/pushService.ts';
 
 
-if ('serviceWorker' in navigator) {
+// Prevent ServiceWorker registration on sandboxed domains like *.usercontent.goog to avoid cross-origin errors.
+const isSandbox = window.location.origin.includes('usercontent.goog');
+
+if ('serviceWorker' in navigator && !isSandbox) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
       .then(registration => {
@@ -22,6 +25,8 @@ if ('serviceWorker' in navigator) {
         console.log('ServiceWorker registration failed: ', err);
       });
   });
+} else if ('serviceWorker' in navigator) {
+    console.log('Service worker registration skipped in sandbox environment.');
 }
 
 const askForPushPermission = async (registration: ServiceWorkerRegistration) => {

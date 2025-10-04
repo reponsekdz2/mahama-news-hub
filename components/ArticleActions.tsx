@@ -12,7 +12,7 @@ interface ArticleActionsProps {
 }
 
 const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
-    const { isLoggedIn, user } = useAuth();
+    const { isLoggedIn, user, hasActiveSubscription } = useAuth();
     const { t } = useLanguage();
     const { isArticleInLibrary } = useLibrary();
     const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
@@ -28,8 +28,10 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
     useEffect(() => {
         setIsLiked(article.isLiked);
         setLikeCount(article.likeCount);
-        offlineService.isArticleOffline(article.id).then(setIsOffline);
-    }, [article.isLiked, article.likeCount, article.id]);
+        if (hasActiveSubscription) {
+            offlineService.isArticleOffline(article.id).then(setIsOffline);
+        }
+    }, [article.isLiked, article.likeCount, article.id, hasActiveSubscription]);
 
      useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -58,6 +60,7 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
     };
     
     const handleOfflineToggle = async () => {
+        if (!hasActiveSubscription) return; // Should be disabled, but double-check
         if (isOffline) {
             await offlineService.removeArticleFromOffline(article.id);
             setIsOffline(false);
@@ -119,13 +122,25 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
                     <button onClick={handleLike} disabled={!isLoggedIn} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50" aria-label="Like article">
                         <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-colors ${isLiked ? 'text-accent-500' : 'text-gray-500 dark:text-gray-400'}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
                     </button>
-                    <button onClick={handleOfflineToggle} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label={isOffline ? t('removeFromOffline') : t('savedForOffline')}>
-                        {isOffline ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-accent-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                        ) : (
-                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    <div className="relative group">
+                        <button 
+                            onClick={handleOfflineToggle} 
+                            disabled={!isLoggedIn || !hasActiveSubscription} 
+                            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed" 
+                            aria-label={isOffline ? t('removeFromOffline') : t('savedForOffline')}
+                        >
+                            {isOffline ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-accent-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            )}
+                        </button>
+                        {(!isLoggedIn || !hasActiveSubscription) && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                {t('offlineRequiresSubscription')}
+                            </div>
                         )}
-                    </button>
+                    </div>
                     {isLoggedIn && (
                         <button onClick={() => setIsCollectionModalOpen(true)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Save to collection">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.125L5 18V4z" className={articleIsInLibrary ? 'text-accent-500' : ''}/></svg>

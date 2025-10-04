@@ -84,6 +84,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({ onClose }
                     <p className="text-sm text-gray-500 dark:text-gray-400">{selectedPlan === 'yearly' ? 'Billed once per year' : 'Billed once per month'}</p>
                 </div>
                 <p className="text-xs text-center mt-4 text-gray-500 dark:text-gray-400">This is a mock payment screen. No real payment will be processed.</p>
+                {error && <p className="mt-4 text-sm text-red-500 text-center">{error}</p>}
             </div>
             <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-b-2xl">
                  <button

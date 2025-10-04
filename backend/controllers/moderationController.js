@@ -10,7 +10,8 @@ const getPendingComments = async (req, res, next) => {
             SELECT 
                 c.id, c.content, c.createdAt, 
                 u.name as userName, 
-                a.title as articleTitle 
+                a.title as articleTitle,
+                c.article_id as articleId
             FROM comments c
             JOIN users u ON c.user_id = u.id
             JOIN articles a ON c.article_id = a.id

@@ -1,0 +1,48 @@
+
+<app-page-header [title]="'DASHBOARD.TITLE' | translate" [subtitle]="username"></app-page-header>
+
+<div class="dashboard-grid">
+  <!-- KPI Cards -->
+  <app-kpi-card
+    class="grid-item"
+    [title]="'DASHBOARD.ACTIVE_CLIENTS' | translate"
+    [value]="kpiData.activeClients.value"
+    [trend]="kpiData.activeClients.trend"
+    icon="people"
+    color="primary">
+  </app-kpi-card>
+  <app-kpi-card
+    class="grid-item"
+    [title]="'DASHBOARD.ACTIVE_LOANS' | translate"
+    [value]="kpiData.activeLoans.value"
+    [trend]="kpiData.activeLoans.trend"
+    icon="monetization_on"
+    color="accent">
+  </app-kpi-card>
+  <app-kpi-card
+    class="grid-item"
+    [title]="'DASHBOARD.TOTAL_SAVINGS' | translate"
+    [value]="kpiData.totalSavings.value"
+    [unit]="kpiData.totalSavings.unit"
+    [trend]="kpiData.totalSavings.trend"
+    icon="savings"
+    color="primary">
+  </app-kpi-card>
+  <app-kpi-card
+    class="grid-item"
+    [title]="'DASHBOARD.PORTFOLIO_AT_RISK' | translate"
+    [value]="kpiData.portfolioAtRisk.value"
+    unit="%"
+    [trend]="kpiData.portfolioAtRisk.trend"
+    icon="warning"
+    color="warn">
+  </app-kpi-card>
+
+  <!-- Charts -->
+  <app-loan-portfolio-chart class="grid-item span-2"></app-loan-portfolio-chart>
+  <app-savings-trends-chart class="grid-item span-2"></app-savings-trends-chart>
+
+  <!-- Recent Transactions -->
+  <app-recent-transactions class="grid-item span-4"></app-recent-transactions>
+
+</div>

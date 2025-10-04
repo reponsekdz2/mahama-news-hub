@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Article } from '../../types.ts';
 import { fetchArticles, deleteArticle, createArticle, updateArticle } from '../../services/articleService.ts';
+import { createOrUpdatePoll } from '../../services/pollService.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 import Spinner from '../Spinner.tsx';
-import ArticleForm from '../ArticleForm.tsx';
+import ArticleForm from './ArticleForm.tsx';
 
 const ArticleManagement: React.FC = () => {
     const { user } = useAuth();
@@ -52,11 +53,24 @@ const ArticleManagement: React.FC = () => {
         setIsSubmitting(true);
         setError(null);
         try {
+            let savedArticle;
             if (articleId) {
-                await updateArticle(articleId, formData, user.token);
+                savedArticle = await updateArticle(articleId, formData, user.token);
             } else {
-                await createArticle(formData, user.token);
+                savedArticle = await createArticle(formData, user.token);
             }
+
+            // After article is saved, handle the poll
+            const pollQuestion = formData.get('pollQuestion') as string;
+            const pollOptions = formData.getAll('pollOptions[]') as string[];
+            if (savedArticle.id && pollQuestion && pollOptions.length > 1) {
+                await createOrUpdatePoll({
+                    articleId: savedArticle.id,
+                    question: pollQuestion,
+                    options: pollOptions
+                }, user.token);
+            }
+
             setIsFormOpen(false);
             setArticleToEdit(null);
             loadArticles(); // Reload articles to see changes

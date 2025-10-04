@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-// FIX: Import sendNewsletterCampaign controller.
 const {
     getCampaigns,
     createCampaign,
@@ -13,7 +12,6 @@ const { adminProtect } = require('../middleware/authMiddleware');
 // All campaign routes are admin-protected
 router.use(adminProtect);
 
-// FIX: Add route for sending newsletter campaigns.
 router.post('/send-newsletter', sendNewsletterCampaign);
 
 router.route('/')

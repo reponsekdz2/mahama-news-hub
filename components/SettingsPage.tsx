@@ -128,8 +128,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
           {options.map(opt => (
               <button
                 key={opt.value}
+                type="button"
                 onClick={() => onChange(opt.value)}
-                className={`flex-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${value === opt.value ? 'bg-white dark:bg-gray-800 shadow-sm' : 'text-gray-600 dark:text-gray-400'}`}
+                className={`flex-1 px-3 py-1 rounded-md text-sm font-medium transition-colors capitalize ${value === opt.value ? 'bg-white dark:bg-gray-800 shadow-sm text-gray-800 dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`}
               >
                   {t(opt.label)}
               </button>
@@ -183,7 +184,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
                     <SettingRow title="Content Preferences">
                         <div className="flex flex-wrap gap-2">
                             {CATEGORIES.filter(c => c !== 'Top Stories').map(cat => (
-                                <button key={cat} onClick={() => handleContentPrefChange(cat)} className={`px-3 py-1 text-sm rounded-full border ${contentPrefs.includes(cat) ? 'bg-accent-500 text-white border-accent-500' : 'bg-transparent border-gray-300 dark:border-gray-600'}`}>
+                                <button key={cat} type="button" onClick={() => handleContentPrefChange(cat)} className={`px-3 py-1 text-sm rounded-full border ${contentPrefs.includes(cat) ? 'bg-accent-500 text-white border-accent-500' : 'bg-transparent border-gray-300 dark:border-gray-600'}`}>
                                     {t(cat as any)}
                                 </button>
                             ))}
@@ -207,10 +208,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
         <Section title={t('accessibility')}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <SettingRow title={t('fontSize')}>
-                    <SegmentedControl options={[{label: 'small', value: 'sm'}, {label: 'medium', value: 'base'}, {label: 'large', value: 'lg'}]} value={fontSize} onChange={(val: FontSize) => setFontSize(val)} />
+                    <SegmentedControl options={[{label: 'small', value: 'sm'}, {label: 'base', value: 'base'}, {label: 'large', value: 'lg'}]} value={fontSize} onChange={(val: FontSize) => setFontSize(val)} />
                 </SettingRow>
                 <SettingRow title={t('lineHeight')}>
-                    <SegmentedControl options={[{label: 'normal', value: 'normal'}, {label: 'relaxed', value: 'relaxed'}, {label: 'spacious', value: 'loose'}]} value={lineHeight} onChange={(val: LineHeight) => setLineHeight(val)} />
+                    <SegmentedControl options={[{label: 'normal', value: 'normal'}, {label: 'relaxed', value: 'relaxed'}, {label: 'loose', value: 'loose'}]} value={lineHeight} onChange={(val: LineHeight) => setLineHeight(val)} />
                 </SettingRow>
             </div>
         </Section>
@@ -250,7 +251,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
                     <h4 className="font-semibold text-gray-800 dark:text-gray-200">Clear Reading History</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">This will permanently delete your viewing history.</p>
                 </div>
-                <button onClick={handleClearHistory} className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 flex-shrink-0">Clear History</button>
+                <button type="button" onClick={handleClearHistory} className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 flex-shrink-0">Clear History</button>
             </div>
             <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-500/50 p-4 rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4 mt-4">
                 <div>

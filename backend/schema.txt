@@ -38,7 +38,10 @@ CREATE TABLE articles (
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     meta_title VARCHAR(255),
     meta_description VARCHAR(255),
-    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_article_category (category),
+    INDEX idx_article_status (status),
+    INDEX idx_article_author (author_id)
 );
 
 -- Ad Campaigns Table
@@ -67,7 +70,6 @@ CREATE TABLE advertisements (
     FOREIGN KEY (campaign_id) REFERENCES ad_campaigns(id) ON DELETE CASCADE
 );
 
-
 -- Comments Table
 CREATE TABLE comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -77,7 +79,8 @@ CREATE TABLE comments (
     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    INDEX idx_comment_article (article_id)
 );
 
 -- Tags & Article-Tags Junction Table
@@ -110,7 +113,9 @@ CREATE TABLE article_views (
     article_id INT NOT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    INDEX idx_view_article (article_id),
+    INDEX idx_view_user (user_id)
 );
 
 
@@ -154,7 +159,34 @@ CREATE TABLE notifications (
     is_read BOOLEAN DEFAULT FALSE,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (related_article_id) REFERENCES articles(id) ON DELETE CASCADE
+    FOREIGN KEY (related_article_id) REFERENCES articles(id) ON DELETE CASCADE,
+    INDEX idx_notification_user (user_id)
+);
+
+-- Polls, Options, and Votes Tables
+CREATE TABLE polls (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    article_id INT NOT NULL UNIQUE,
+    question TEXT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+);
+CREATE TABLE poll_options (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    poll_id INT NOT NULL,
+    option_text VARCHAR(255) NOT NULL,
+    FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE
+);
+CREATE TABLE poll_votes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    poll_id INT NOT NULL,
+    poll_option_id INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY user_poll_vote (user_id, poll_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (poll_id) REFERENCES polls(id) ON DELETE CASCADE,
+    FOREIGN KEY (poll_option_id) REFERENCES poll_options(id) ON DELETE CASCADE
 );
 
 -- Push Subscriptions Table
@@ -189,5 +221,12 @@ CREATE TABLE user_actions (
     target_id INT, -- e.g., article_id
     details JSON, -- e.g., { "platform": "twitter" } for a share
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_action_type (user_id, action_type)
+);
+
+-- Newsletter Subscriptions table
+CREATE TABLE newsletter_subscriptions (
+    email VARCHAR(255) PRIMARY KEY,
+    subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

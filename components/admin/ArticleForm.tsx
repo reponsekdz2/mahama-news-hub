@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactQuill from 'react-quill';
 import { Article } from '../../types.ts';
 import { useLanguage, CATEGORIES } from '../../contexts/LanguageContext.tsx';
+import { createOrUpdatePoll } from '../../services/pollService.ts';
+import { useAuth } from '../../contexts/AuthContext.tsx';
 
 interface ArticleFormProps {
   articleToEdit?: Partial<Article> | null;
@@ -12,6 +14,7 @@ interface ArticleFormProps {
 
 const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, onCancel, isLoading }) => {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
@@ -101,8 +104,10 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.token) return;
+
     const formData = new FormData();
     formData.append('title', title);
     formData.append('summary', summary);
@@ -113,6 +118,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
     formData.append('tags', tags);
     formData.append('metaTitle', metaTitle);
     formData.append('metaDescription', metaDescription);
+
     if (image) {
       formData.append('image', image);
     } else if (articleToEdit?.imageUrl) {
@@ -124,12 +130,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
         formData.append('videoUrl', articleToEdit.videoUrl);
     }
     
-    // Add poll data
-    if (pollQuestion.trim() && pollOptions.every(opt => opt.trim())) {
-        formData.append('pollQuestion', pollQuestion);
-        pollOptions.forEach(opt => formData.append('pollOptions[]', opt));
-    }
-    
+    // The onFormSubmit prop will handle the article creation/update
+    // and then we can create/update the poll with the returned article ID.
     onFormSubmit(formData, articleToEdit?.id);
   };
 

@@ -1,25 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Advertisement } from '../types.ts';
-import { fetchSidebarAds } from '../services/adService.ts';
-import { useAuth } from '../contexts/AuthContext.tsx';
-import AdBanner from './AdBanner.tsx';
+import { Advertisement } from './types.ts';
+import { fetchSidebarAds } from './services/adService.ts';
+import { useAuth } from './contexts/AuthContext.tsx';
+import AdBanner from './components/AdBanner.tsx';
 
 interface AsideProps {
+    category?: string;
     onSubscribeClick: () => void;
 }
 
-const Aside: React.FC<AsideProps> = ({ onSubscribeClick }) => {
+const Aside: React.FC<AsideProps> = ({ category, onSubscribeClick }) => {
     const { hasActiveSubscription } = useAuth();
     const [ads, setAds] = useState<Advertisement[]>([]);
     const viewedAds = React.useRef(new Set<string>());
 
     useEffect(() => {
         if (!hasActiveSubscription) {
-            fetchSidebarAds()
+            fetchSidebarAds(category)
                 .then(setAds)
                 .catch(err => console.error("Failed to fetch sidebar ads", err));
         }
-    }, [hasActiveSubscription]);
+    }, [hasActiveSubscription, category]);
 
     return (
         <div className="space-y-6">

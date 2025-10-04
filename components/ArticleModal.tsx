@@ -33,34 +33,35 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose, onReadAno
       metaDesc.setAttribute('content', article.metaDescription || article.summary);
     }
     
+    const scrollContainer = document.querySelector('.article-content-scroll');
+    if (!scrollContainer) return;
+
     const handleScroll = () => {
-        const contentEl = document.querySelector('.article-content-scroll');
-        if (contentEl) {
-            const scrollableHeight = contentEl.scrollHeight - contentEl.clientHeight;
-            const currentProgress = (contentEl.scrollTop / scrollableHeight) * 100;
-            setProgress(currentProgress > 100 ? 100 : currentProgress);
-        }
+        const scrollableHeight = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+        const currentProgress = (scrollContainer.scrollTop / scrollableHeight) * 100;
+        setProgress(currentProgress > 100 ? 100 : currentProgress);
     };
     
-    const contentEl = document.querySelector('.article-content-scroll');
-    contentEl?.addEventListener('scroll', handleScroll);
+    scrollContainer.addEventListener('scroll', handleScroll);
+    // Reset scroll position on article change
+    scrollContainer.scrollTo(0, 0);
     
     return () => {
-        contentEl?.removeEventListener('scroll', handleScroll);
+        scrollContainer.removeEventListener('scroll', handleScroll);
         // Resetting title/meta is handled by App component on close
     };
 
   }, [article, user?.token]);
   
   const contentStyle = {
-      fontSize: `var(--font-size, ${fontSize === 'sm' ? '14px' : fontSize === 'lg' ? '18px' : '16px'})`,
-      lineHeight: `var(--line-height, ${lineHeight === 'relaxed' ? '1.75' : lineHeight === 'loose' ? '2.0' : '1.5'})`,
+      fontSize: 'var(--font-size-base)',
+      lineHeight: 'var(--line-height-base)',
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-100 dark:bg-gray-900 z-40 animate-fadeIn article-content-scroll">
+    <div className="fixed inset-0 bg-gray-100 dark:bg-gray-900 z-40 animate-fadeIn article-content-scroll" style={{overflowY: 'scroll'}}>
        <div
-          className="fixed top-0 left-0 h-1 bg-accent-500 transition-all duration-150"
+          className="fixed top-0 left-0 h-1 bg-accent-500 transition-all duration-150 z-50"
           style={{ width: `${progress}%` }}
         />
       <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isReaderMode ? 'reader-mode' : ''}`}>

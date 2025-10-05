@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Advertisement } from './types.ts';
-import { fetchSidebarAds, trackAdClick, trackAdImpression } from './services/adService.ts';
-import { subscribeToNewsletter } from './services/userService.ts';
-import { useAuth } from './contexts/AuthContext.tsx';
+import { Advertisement } from '../types.ts';
+import { fetchSidebarAds, trackAdClick, trackAdImpression } from '../services/adService.ts';
+import { subscribeToNewsletter } from '../services/userService.ts';
+import { useAuth } from '../contexts/AuthContext.tsx';
 
 interface AsideProps {
     category?: string;

@@ -20,9 +20,6 @@ export const ACCENT_COLORS: Record<AccentColor, Record<string, string>> = {
   pink: { '500': '236 72 153', '600': '219 39 119', '50': '253 242 248', '100': '252 231 243', '200': '251 207 232', '300': '249 168 212', '400': '244 114 182', '700': '190 24 93', '800': '157 23 77', '900': '131 24 67'},
 };
 
-const FONT_SIZES: Record<FontSize, string> = { sm: '0.875rem', base: '1rem', lg: '1.125rem' };
-const LINE_HEIGHTS: Record<LineHeight, string> = { normal: '1.6', relaxed: '1.8', loose: '2.0' };
-
 
 interface SettingsContextType {
   theme: Theme;
@@ -39,7 +36,7 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-const applySettingsStyle = (settings: { theme: Theme, accentColor: AccentColor, fontSize: FontSize, lineHeight: LineHeight }) => {
+const applySettingsStyle = (settings: { theme: Theme, accentColor: AccentColor }) => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(settings.theme);
@@ -48,26 +45,23 @@ const applySettingsStyle = (settings: { theme: Theme, accentColor: AccentColor, 
     for (const [shade, rgb] of Object.entries(color)) {
       root.style.setProperty(`--accent-color-${shade}`, rgb);
     }
-    
-    root.style.setProperty('--font-size-base', FONT_SIZES[settings.fontSize]);
-    root.style.setProperty('--line-height-base', LINE_HEIGHTS[settings.lineHeight]);
 };
 
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [isPersistenceLoading, setIsPersistenceLoading] = useState(true);
 
-  // Load initial settings from localStorage or set defaults
-  const [theme, _setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'dark');
+  // Load initial settings from localStorage or set defaults to 'light'
+  const [theme, _setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'light');
   const [accentColor, _setAccentColor] = useState<AccentColor>(() => (localStorage.getItem('accentColor') as AccentColor) || 'red');
   const [fontSize, _setFontSize] = useState<FontSize>(() => (localStorage.getItem('fontSize') as FontSize) || 'base');
   const [lineHeight, _setLineHeight] = useState<LineHeight>(() => (localStorage.getItem('lineHeight') as LineHeight) || 'normal');
 
 
   useEffect(() => {
-    applySettingsStyle({ theme, accentColor, fontSize, lineHeight });
+    applySettingsStyle({ theme, accentColor });
     if(isPersistenceLoading) setIsPersistenceLoading(false);
-  }, [theme, accentColor, fontSize, lineHeight]);
+  }, [theme, accentColor]);
 
   const setTheme = (newTheme: Theme) => {
     _setTheme(newTheme);
@@ -101,11 +95,11 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
     setIsPersistenceLoading(true);
     try {
         const prefs = await getPreferences(token);
-        _setTheme(prefs.theme || 'dark');
+        _setTheme(prefs.theme || 'light');
         _setAccentColor(prefs.accentColor || 'red');
         _setFontSize(prefs.fontSize || 'base');
         _setLineHeight(prefs.lineHeight || 'normal');
-        localStorage.setItem('theme', prefs.theme || 'dark');
+        localStorage.setItem('theme', prefs.theme || 'light');
         localStorage.setItem('accentColor', prefs.accentColor || 'red');
         localStorage.setItem('fontSize', prefs.fontSize || 'base');
         localStorage.setItem('lineHeight', prefs.lineHeight || 'normal');

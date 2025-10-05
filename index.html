@@ -4,8 +4,41 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mahama News TV</title>
-    <!-- Link to the main stylesheet -->
-    <link rel="stylesheet" href="/index.css" />
+    <!-- 
+      IMPORTANT: Replace 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com' with your actual 
+      Google Client ID for the Sign-In functionality to work.
+    -->
+    <meta name="google-signin-client_id" content="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              accent: {
+                50: 'rgb(var(--accent-color-50) / <alpha-value>)',
+                100: 'rgb(var(--accent-color-100) / <alpha-value>)',
+                200: 'rgb(var(--accent-color-200) / <alpha-value>)',
+                300: 'rgb(var(--accent-color-300) / <alpha-value>)',
+                400: 'rgb(var(--accent-color-400) / <alpha-value>)',
+                500: 'rgb(var(--accent-color-500) / <alpha-value>)',
+                600: 'rgb(var(--accent-color-600) / <alpha-value>)',
+                700: 'rgb(var(--accent-color-700) / <alpha-value>)',
+                800: 'rgb(var(--accent-color-800) / <alpha-value>)',
+                900: 'rgb(var(--accent-color-900) / <alpha-value>)',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    
+    <!-- Google Identity Services Library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
   <script type="importmap">
 {
   "imports": {
@@ -20,7 +53,7 @@
 }
 </script>
 </head>
-  <body>
+  <body class="text-gray-900 dark:text-gray-100 antialiased">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

@@ -1,11 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useLanguage } from '../contexts/LanguageContext.tsx';
 import { loginUser, registerUser, googleSignIn } from '../services/authService.ts';
 
+// Add type definitions for Google Identity Services to avoid TypeScript errors.
+declare global {
+    interface Window {
+        google: {
+            accounts: {
+                id: {
+                    initialize: (config: object) => void;
+                    renderButton: (parent: HTMLElement, options: object) => void;
+                    prompt: () => void;
+                }
+            }
+        }
+    }
+}
+
+
 interface AuthModalProps {
     onClose: () => void;
 }
+
+// Simple JWT decoder
+const decodeJwt = (token: string) => {
+    try {
+        return JSON.parse(atob(token.split('.')[1]));
+    } catch (e) {
+        console.error("Failed to decode JWT", e);
+        return null;
+    }
+}
+
 
 const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     const [isLoginView, setIsLoginView] = useState(true);
@@ -18,6 +45,44 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    const handleGoogleCallback = async (response: any) => {
+        setIsLoading(true);
+        setError('');
+        const decoded = decodeJwt(response.credential);
+        if (decoded) {
+             try {
+                const data = await googleSignIn(decoded.email, decoded.name);
+                login(data);
+                onClose();
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Google sign-in failed');
+            } finally {
+                setIsLoading(false);
+            }
+        } else {
+             setError('Failed to process Google sign-in. Please try again.');
+             setIsLoading(false);
+        }
+    };
+    
+    useEffect(() => {
+        // Initialize Google Sign-In button
+        if (window.google) {
+            window.google.accounts.id.initialize({
+                // IMPORTANT: You must replace this with your actual Google Client ID
+                client_id: document.querySelector<HTMLMetaElement>('meta[name="google-signin-client_id"]')?.content || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+                callback: handleGoogleCallback
+            });
+            const googleButton = document.getElementById('google-signin-button');
+            if (googleButton) {
+                window.google.accounts.id.renderButton(
+                    googleButton,
+                    { theme: 'outline', size: 'large', type: 'standard', text: 'signin_with', width: '300' }
+                );
+            }
+        }
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,102 +117,104 @@ const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
             setIsLoading(false);
         }
     };
-    
-    // This is a mock implementation for demonstration.
-    // In a real app, you would use a library like @react-oauth/google
-    const handleGoogleSignIn = async () => {
-        setIsLoading(true);
-        setError('');
-        try {
-            // In a real app, you'd get a token from Google's OAuth flow here.
-            // We'll simulate it with prompt for simplicity.
-            const mockEmail = prompt("Enter a Google email to simulate sign-in:", "test.user@gmail.com");
-            const mockName = prompt("Enter your name:", "Test User");
 
-            if(mockEmail && mockName) {
-                const data = await googleSignIn(mockEmail, mockName);
-                login(data);
-                onClose();
-            } else {
-                 throw new Error("Google sign-in cancelled.");
-            }
-           
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Google sign-in failed');
-        } finally {
-            setIsLoading(false);
+    const toggleView = () => {
+        setIsLoginView(!isLoginView);
+        setError('');
+        setEmail('');
+        setPassword('');
+        setName('');
+        setConfirmPassword('');
+    }
+
+    const renderFormContent = () => {
+        const inputClasses = "mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm";
+        const labelClasses = "block text-sm font-medium text-gray-700 dark:text-gray-300";
+
+        if (isLoginView) {
+            return (
+                <form onSubmit={handleLogin} className="space-y-4">
+                    <div>
+                        <label className={labelClasses}>{t('emailAddress')}</label>
+                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className={inputClasses} />
+                    </div>
+                    <div>
+                        <label className={labelClasses}>{t('password')}</label>
+                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className={inputClasses} />
+                    </div>
+                    <button type="submit" disabled={isLoading} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 disabled:opacity-50">
+                        {isLoading ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white"></span> : t('loginCTA')}
+                    </button>
+                    <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+                        {t('dontHaveAccount')} <button type="button" onClick={toggleView} className="font-semibold text-accent-600 hover:underline">{t('register')}</button>
+                    </p>
+                </form>
+            )
         }
-    };
+        return (
+            <form onSubmit={handleRegister} className="space-y-4">
+                 <div>
+                    <label className={labelClasses}>{t('fullName')}</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} required className={inputClasses} />
+                </div>
+                <div>
+                    <label className={labelClasses}>{t('emailAddress')}</label>
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className={inputClasses} />
+                </div>
+                <div>
+                    <label className={labelClasses}>{t('password')}</label>
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className={inputClasses} />
+                </div>
+                 <div>
+                    <label className={labelClasses}>{t('confirmPassword')}</label>
+                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className={inputClasses} />
+                </div>
+                <button type="submit" disabled={isLoading} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500 disabled:opacity-50">
+                    {isLoading ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white"></span> : t('registerCTA')}
+                </button>
+                 <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+                    {t('alreadyHaveAccount')} <button type="button" onClick={toggleView} className="font-semibold text-accent-600 hover:underline">{t('login')}</button>
+                </p>
+            </form>
+        );
+    }
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-panel max-w-sm" onClick={e => e.stopPropagation()}>
-                <div className="p-8">
-                    <div className="flex justify-between items-start mb-6">
-                        <div>
-                            <h2 className="text-2xl font-bold">
-                                {isLoginView ? t('loginToYourAccount') : t('createAnAccount')}
-                            </h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                {isLoginView ? "Welcome back!" : "Join our community."}
-                            </p>
-                        </div>
-                        <button onClick={onClose} className="btn-icon -mt-2 -mr-2">&times;</button>
-                    </div>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl overflow-hidden grid md:grid-cols-2" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-2 right-2 p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 z-10">&times;</button>
 
-                    {error && <p className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 p-3 rounded-md text-sm mb-4">{error}</p>}
+                <div className="hidden md:flex flex-col justify-center p-12 bg-gray-50 dark:bg-gray-900/50">
+                    <h2 className="text-3xl font-extrabold text-gray-800 dark:text-gray-200">
+                        {isLoginView ? "Welcome Back" : "Join Us Today"}
+                    </h2>
+                    <p className="mt-2 text-gray-600 dark:text-gray-400">
+                        {isLoginView 
+                            ? "Sign in to access your personalized feed, saved articles, and more." 
+                            : "Create an account to unlock all features and start your journey with us."
+                        }
+                    </p>
+                </div>
+                
+                <div className="p-8">
+                    <h3 className="text-2xl font-bold text-center text-gray-900 dark:text-white">
+                        {isLoginView ? t('loginToYourAccount') : t('createAnAccount')}
+                    </h3>
+
+                    {error && <p className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 p-3 rounded-md text-sm my-4">{error}</p>}
                     
-                    <div className="space-y-4">
-                        <button onClick={handleGoogleSignIn} className="btn-social">
-                           <svg className="w-5 h-5" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"></path><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A8 8 0 0 1 24 36c-5.222 0-9.641-3.66-11.28-8.591l-6.522 5.025C9.505 39.556 16.227 44 24 44z"></path><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C44.434 36.338 48 30.652 48 24c0-1.341-.138-2.65-.389-3.917z"></path></svg>
-                           <span>{t('signInWithGoogle')}</span>
-                        </button>
-                        <div className="auth-divider">OR</div>
+                    <div className="mt-6 space-y-4">
+                        <div id="google-signin-button" className="flex justify-center"></div>
+                        <div className="relative flex items-center">
+                            <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                            <span className="flex-shrink mx-4 text-sm text-gray-500 dark:text-gray-400">Or continue with email</span>
+                            <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+                        </div>
                     </div>
                     
-                    {isLoginView ? (
-                        <form onSubmit={handleLogin} className="space-y-4">
-                            <div className="form-group">
-                                <label className="form-label">{t('emailAddress')}</label>
-                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="form-input" />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">{t('password')}</label>
-                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="form-input" />
-                            </div>
-                            <button type="submit" disabled={isLoading} className="btn btn-primary w-full">
-                                {isLoading ? 'Logging in...' : t('loginCTA')}
-                            </button>
-                            <p className="text-sm text-center">
-                                {t('dontHaveAccount')} <button type="button" onClick={() => setIsLoginView(false)} className="text-accent-600 hover:underline">{t('register')}</button>
-                            </p>
-                        </form>
-                    ) : (
-                         <form onSubmit={handleRegister} className="space-y-4">
-                            <div className="form-group">
-                                <label className="form-label">{t('fullName')}</label>
-                                <input type="text" value={name} onChange={e => setName(e.target.value)} required className="form-input" />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">{t('emailAddress')}</label>
-                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="form-input" />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">{t('password')}</label>
-                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="form-input" />
-                            </div>
-                             <div className="form-group">
-                                <label className="form-label">{t('confirmPassword')}</label>
-                                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="form-input" />
-                            </div>
-                            <button type="submit" disabled={isLoading} className="btn btn-primary w-full">
-                                {isLoading ? 'Creating account...' : t('registerCTA')}
-                            </button>
-                             <p className="text-sm text-center">
-                                {t('alreadyHaveAccount')} <button type="button" onClick={() => setIsLoginView(true)} className="text-accent-600 hover:underline">{t('login')}</button>
-                            </p>
-                        </form>
-                    )}
+                    <div className="mt-6">
+                        {renderFormContent()}
+                    </div>
                 </div>
             </div>
         </div>

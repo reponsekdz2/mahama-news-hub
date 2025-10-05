@@ -6,6 +6,7 @@ import { likeArticle, unlikeArticle, trackShare } from '../services/articleServi
 import * as offlineService from '../services/offlineArticleService.ts';
 import SaveToCollectionModal from './SaveToCollectionModal.tsx';
 import { useLanguage } from '../contexts/LanguageContext.tsx';
+import useSpeechSynthesis from '../hooks/useSpeechSynthesis.ts';
 
 interface ArticleActionsProps {
     article: Article;
@@ -24,6 +25,16 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
 
     const [isShareOpen, setIsShareOpen] = useState(false);
     const shareRef = useRef<HTMLDivElement>(null);
+    
+    // Text-to-Speech
+    const plainTextContent = new DOMParser().parseFromString(article.content, 'text/html').body.textContent || "";
+    const { play, pause, stop, isPlaying, isPaused } = useSpeechSynthesis(plainTextContent);
+    
+    useEffect(() => {
+        // Stop speech synthesis when modal closes (component unmounts)
+        return () => stop();
+    }, [stop]);
+
 
     useEffect(() => {
         setIsLiked(article.isLiked);
@@ -112,15 +123,37 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
     return (
         <>
             {isCollectionModalOpen && <SaveToCollectionModal article={article} onClose={() => setIsCollectionModalOpen(false)} />}
-            <div className="my-6 py-4 border-y dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
+            <div className="my-6 py-4 border-y border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                     <span>By <strong>{article.authorName}</strong></span>
                     <div className="flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" /></svg> {article.viewCount}</div>
                     <span>{likeCount} Likes</span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
+                    {/* TTS CONTROLS */}
+                    <div className="flex items-center rounded-full bg-gray-100 dark:bg-gray-700 p-1">
+                        {!isPlaying && !isPaused ? (
+                            <button onClick={play} className="p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="Listen to article">
+                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 0 0 4 4.11V15.89a1.5 1.5 0 0 0 2.3 1.269l9.344-5.89a1.5 1.5 0 0 0 0-2.538L6.3 2.84Z" /></svg>
+                            </button>
+                        ) : isPlaying ? (
+                            <button onClick={pause} className="p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="Pause audio">
+                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.75 4.75a.75.75 0 0 0-.75.75v9.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75v-9.5a.75.75 0 0 0-.75-.75h-1.5Zm6.5 0a.75.75 0 0 0-.75.75v9.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75v-9.5a.75.75 0 0 0-.75-.75h-1.5Z" /></svg>
+                            </button>
+                        ) : (
+                             <button onClick={play} className="p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="Resume audio">
+                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 2.841A1.5 1.5 0 0 0 4 4.11V15.89a1.5 1.5 0 0 0 2.3 1.269l9.344-5.89a1.5 1.5 0 0 0 0-2.538L6.3 2.84Z" /></svg>
+                            </button>
+                        )}
+                        {(isPlaying || isPaused) && (
+                            <button onClick={stop} className="p-1.5 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="Stop audio">
+                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 6.25a1.25 1.25 0 1 1 2.5 0v7.5a1.25 1.25 0 1 1-2.5 0v-7.5ZM12.5 6.25a1.25 1.25 0 1 1 2.5 0v7.5a1.25 1.25 0 1 1-2.5 0v-7.5Z" /></svg>
+                            </button>
+                        )}
+                    </div>
+                    {/* STANDARD ACTIONS */}
                     <button onClick={handleLike} disabled={!isLoggedIn} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50" aria-label="Like article">
-                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-colors ${isLiked ? 'text-accent-500' : 'text-gray-500 dark:text-gray-400'}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-colors ${isLiked ? 'text-accent-500 fill-current' : 'text-gray-500 dark:text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.682l1.318-1.364a4.5 4.5 0 016.364 6.364l-7 7.273-7-7.273a4.5 4.5 0 010-6.364z" /></svg>
                     </button>
                     <div className="relative group">
                         <button 
@@ -143,7 +176,7 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
                     </div>
                     {isLoggedIn && (
                         <button onClick={() => setIsCollectionModalOpen(true)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Save to collection">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.125L5 18V4z" className={articleIsInLibrary ? 'text-accent-500' : ''}/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${articleIsInLibrary ? 'text-accent-500 fill-current' : 'text-gray-500 dark:text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
                         </button>
                     )}
                     <div className="relative" ref={shareRef}>

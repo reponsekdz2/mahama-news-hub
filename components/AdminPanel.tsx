@@ -51,7 +51,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onNavigateBack }) => {
     )
 
     return (
-        <div className="card p-6 md:p-8 my-6 md:my-8 animate-fadeIn">
+        <div className="bg-white dark:bg-gray-800 p-6 md:p-8 my-6 md:my-8 animate-fadeIn rounded-lg shadow-md">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 border-b pb-4 dark:border-gray-700">
                 <div>
                     <h1 className="text-3xl font-extrabold text-gray-800 dark:text-gray-200">Admin Panel</h1>
@@ -63,7 +63,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onNavigateBack }) => {
             </div>
             
             <nav className="mb-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="overflow-x-auto admin-nav-scroll pb-2">
+                <div className="overflow-x-auto pb-2">
                     <div className="flex space-x-2">
                         <NavButton currentView={view} targetView="dashboard" label="Dashboard" />
                         <NavButton currentView={view} targetView="articles" label="Articles" />

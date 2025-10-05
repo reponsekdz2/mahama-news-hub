@@ -202,7 +202,7 @@ const App: React.FC = () => {
         {isLoading ? (
           <>
             <MainArticleSkeleton />
-            <div className="articles-grid">
+            <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {[...Array(6)].map((_, i) => <ArticleCardSkeleton key={i} />)}
             </div>
           </>
@@ -217,7 +217,7 @@ const App: React.FC = () => {
               </div>
             )}
             {otherArticles.length > 0 && (
-              <div className="articles-grid">
+              <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 {otherArticles.map(article => (
                   <ArticleCard key={article.id} article={article} onReadMore={handleReadArticle} />
                 ))}
@@ -230,7 +230,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
       {!isOnline && <OfflineBanner />}
       <Header
         onTopicSelect={topic => {
@@ -244,20 +244,20 @@ const App: React.FC = () => {
         onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
         currentTopic={currentTopic}
       />
-      <main className="container py-6">
-        <div className="app-grid">
-            <div className="main-content">
+      <main className="flex-grow mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 lg:gap-8">
+            <div className="lg:col-span-3">
                  {isPersistenceLoading ? <Spinner /> : renderContent()}
             </div>
-            <aside className="hidden lg:block aside-column">
-                <div className="sticky top-24 space-y-8">
+            <div className="lg:col-span-1 mt-8 lg:mt-0">
+                <div className="sticky top-24">
                     <Aside 
                         onArticleSelect={handleReadArticleById}
                         onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
                         category={currentTopic}
                     />
                 </div>
-            </aside>
+            </div>
         </div>
       </main>
       <Footer />

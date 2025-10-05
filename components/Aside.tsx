@@ -12,6 +12,7 @@ interface AsideProps {
 
 const AdContainer: React.FC<{ad: Advertisement, viewedAds: React.MutableRefObject<Set<string>>}> = ({ ad, viewedAds }) => {
     const adRef = React.useRef<HTMLDivElement>(null);
+    const [isVisible, setIsVisible] = useState(false);
     
     const trackClick = () => {
         trackAdClick(ad.id).catch(err => console.error("Failed to track ad click", err));
@@ -19,12 +20,15 @@ const AdContainer: React.FC<{ad: Advertisement, viewedAds: React.MutableRefObjec
 
     useEffect(() => {
         const observer = new IntersectionObserver(([entry]) => {
-            if (entry.isIntersecting && !viewedAds.current.has(ad.id)) {
-                viewedAds.current.add(ad.id);
-                trackAdImpression(ad.id).catch(err => console.error("Failed to track ad impression", err));
+            if (entry.isIntersecting) {
+                setIsVisible(true);
+                if (!viewedAds.current.has(ad.id)) {
+                    viewedAds.current.add(ad.id);
+                    trackAdImpression(ad.id).catch(err => console.error("Failed to track ad impression", err));
+                }
                 observer.disconnect();
             }
-        }, { threshold: 0.5 });
+        }, { threshold: 0.2 });
         
         const currentAdRef = adRef.current;
         if (currentAdRef) observer.observe(currentAdRef);
@@ -36,10 +40,13 @@ const AdContainer: React.FC<{ad: Advertisement, viewedAds: React.MutableRefObjec
     }, [ad.id, viewedAds]);
 
     return (
-        <div ref={adRef} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md transition-all duration-500 ease-in-out">
+        <div 
+            ref={adRef} 
+            className={`transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+        >
             <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" onClick={trackClick} className="block group">
-                <p className="text-xs text-gray-400 mb-2 text-right">Advertisement</p>
-                <div className="overflow-hidden rounded-md">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-2 text-right">Advertisement</p>
+                <div className="overflow-hidden rounded-md border border-gray-200 dark:border-gray-700 group-hover:shadow-lg transition-shadow">
                     {ad.adType === 'video' ? (
                         <video 
                             src={ad.assetUrl} 
@@ -53,7 +60,7 @@ const AdContainer: React.FC<{ad: Advertisement, viewedAds: React.MutableRefObjec
                         <img src={ad.assetUrl} alt={ad.title} className="w-full h-auto transition-transform duration-300 group-hover:scale-105" />
                     )}
                 </div>
-                <h4 className="font-semibold text-gray-800 dark:text-gray-200 mt-3 group-hover:text-accent-600 dark:group-hover:text-accent-400">{ad.title}</h4>
+                <h4 className="font-semibold text-gray-800 dark:text-gray-200 mt-3 group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">{ad.title}</h4>
             </a>
         </div>
     );
@@ -76,26 +83,28 @@ const Aside: React.FC<AsideProps> = ({ category, onSubscribeClick, onArticleSele
     return (
         <div className="space-y-8">
             {!hasActiveSubscription && (
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border-2 border-accent-500 text-center">
+                <div className="p-6 text-center bg-white dark:bg-gray-800 border border-accent-400 rounded-lg shadow-sm bg-gradient-to-tr from-accent-50/50 dark:from-accent-900/20">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white">Go Premium!</h3>
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                         Unlock all articles and enjoy an ad-free experience.
                     </p>
                     <button 
                         onClick={onSubscribeClick}
-                        className="mt-4 w-full bg-accent-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-accent-700 transition-colors"
+                        className="mt-4 w-full px-4 py-2 bg-accent-600 text-white rounded-md text-sm font-medium hover:bg-accent-700"
                     >
                         Subscribe Now
                     </button>
                 </div>
             )}
             
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <div className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
                  <TrendingArticles onArticleSelect={onArticleSelect} />
             </div>
 
             {!hasActiveSubscription && ads.length > 0 && ads.map(ad => (
-                <AdContainer key={ad.id} ad={ad} viewedAds={viewedAds} />
+                <div key={ad.id} className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-shadow hover:shadow-accent-500/20">
+                    <AdContainer ad={ad} viewedAds={viewedAds} />
+                </div>
             ))}
         </div>
     );

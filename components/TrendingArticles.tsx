@@ -42,7 +42,7 @@ const TrendingArticles: React.FC<TrendingArticlesProps> = ({ onArticleSelect }) 
     if (isLoading) {
         return (
             <div>
-                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-wider uppercase">{t('trendingArticles')}</h3>
+                 <h3 className="pb-3 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('trendingArticles')}</h3>
                  {renderSkeletons()}
             </div>
         )
@@ -52,16 +52,16 @@ const TrendingArticles: React.FC<TrendingArticlesProps> = ({ onArticleSelect }) 
 
     return (
         <div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-wider uppercase">{t('trendingArticles')}</h3>
+            <h3 className="pb-3 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('trendingArticles')}</h3>
             <ul className="mt-4 space-y-4">
                 {articles.map((article, index) => (
-                    <li key={article.id} className="flex items-start group">
-                        <span className="text-2xl font-bold text-gray-300 dark:text-gray-600 w-8 flex-shrink-0 mt-[-2px]">{index + 1}</span>
+                    <li key={article.id} className="flex items-start gap-4 group">
+                        <span className="text-2xl font-extrabold text-gray-300 dark:text-gray-600 group-hover:text-accent-400 transition-colors">{index + 1}</span>
                         <div>
-                           <button onClick={() => onArticleSelect(article.id)} className="text-base text-left font-semibold text-gray-700 dark:text-gray-300 group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">
+                           <button onClick={() => onArticleSelect(article.id)} className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-accent-600 dark:group-hover:text-accent-400 text-left leading-snug transition-colors">
                              {article.title}
                            </button>
-                           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{article.views.toLocaleString()} views</p>
+                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{article.views.toLocaleString()} views</p>
                         </div>
                     </li>
                 ))}

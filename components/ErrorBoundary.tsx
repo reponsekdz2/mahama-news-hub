@@ -9,13 +9,17 @@ interface ErrorBoundaryState {
   error?: Error;
 }
 
-// Fix: Changed from `React.Component` to `Component` to resolve a potential type resolution issue.
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Replaced constructor with class field for state initialization to resolve 'this.state' access errors.
-  state: ErrorBoundaryState = {
-    hasError: false,
-    error: undefined,
-  };
+  // Fix for "Property 'props' does not exist on type 'ErrorBoundary'".
+  // Using a constructor to initialize state is a more robust pattern that ensures `this.props` is available
+  // and can resolve subtle tooling or type-checking errors.
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: undefined,
+    };
+  }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -26,7 +30,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     // Here you would typically log the error to a service like Sentry
   }
 
-  // Fix: Converted to an arrow function to automatically bind `this` and resolve access errors.
   private handleReport = () => {
     const subject = "Mahama News TV - Application Error Report";
     const body = `

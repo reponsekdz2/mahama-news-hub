@@ -13,7 +13,6 @@ import Spinner from './components/Spinner.tsx';
 import ErrorDisplay from './components/ErrorDisplay.tsx';
 import ArticleModal from './components/ArticleModal.tsx';
 import { MainArticleSkeleton, ArticleCardSkeleton } from './components/Skeletons.tsx';
-import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
 import BackToTopButton from './components/BackToTopButton.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import LibraryPage from './components/LibraryPage.tsx';

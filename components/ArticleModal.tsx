@@ -29,6 +29,37 @@ const PremiumContentPrompt: React.FC<{ onSubscribeClick: () => void, summary: st
     </div>
 );
 
+// Helper to format AI summary text into HTML
+const formatAiSummary = (text: string): string => {
+    const lines = text.split('\n').filter(line => line.trim() !== '');
+    let html = '';
+    let inList = false;
+
+    lines.forEach(line => {
+        const isListItem = line.trim().startsWith('* ') || line.trim().startsWith('- ');
+        if (isListItem) {
+            if (!inList) {
+                html += '<ul>';
+                inList = true;
+            }
+            html += `<li>${line.trim().substring(2)}</li>`;
+        } else {
+            if (inList) {
+                html += '</ul>';
+                inList = false;
+            }
+            html += `<p>${line}</p>`;
+        }
+    });
+
+    if (inList) {
+        html += '</ul>';
+    }
+
+    return html;
+};
+
+
 const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose, onArticleNavigate, onSubscribeClick }) => {
     const { user } = useAuth();
     const { fontSize, lineHeight } = useSettings();
@@ -153,7 +184,7 @@ const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose, onArticle
                                 <button onClick={() => setAiSummary('')} className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
                                     &times;
                                 </button>
-                                <div className="prose prose-sm dark:prose-invert max-w-none mt-2" dangerouslySetInnerHTML={{ __html: aiSummary.replace(/\n/g, '<br />') }} />
+                                <div className="prose prose-sm dark:prose-invert max-w-none mt-2" dangerouslySetInnerHTML={{ __html: formatAiSummary(aiSummary) }} />
                             </div>
                         )}
 

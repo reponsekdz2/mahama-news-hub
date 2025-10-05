@@ -11,7 +11,7 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
     const readingTime = calculateReadingTime(article.summary);
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col group transition-all duration-300 hover:shadow-xl border-2 border-transparent hover:border-accent-500">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-2 border-transparent hover:border-accent-500">
             <button onClick={() => onReadMore(article)} className="block overflow-hidden relative">
                 <img className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105" src={article.imageUrl} alt={article.title} />
                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>

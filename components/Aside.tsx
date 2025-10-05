@@ -108,7 +108,7 @@ const Aside: React.FC<AsideProps> = ({ category, onSubscribeClick, onArticleSele
     return (
         <div className="space-y-8">
             {!hasActiveSubscription && (
-                <div className="p-6 text-center bg-gradient-to-br from-accent-50 to-white dark:from-accent-900/30 dark:to-gray-900 border-2 border-accent-400 rounded-lg shadow-lg">
+                <div className="p-6 text-center bg-gradient-to-br from-accent-50 to-white dark:from-accent-900/30 dark:to-gray-800 border-2 border-accent-400 dark:border-accent-600 rounded-lg shadow-lg">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white">Go Premium!</h3>
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                         Unlock all articles and enjoy an ad-free experience.

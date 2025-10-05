@@ -64,7 +64,6 @@ const Header: React.FC<HeaderProps> = ({
       <>
         {user?.role === 'admin' && <button onClick={() => handleMobileLinkClick(() => onNavigate('admin'))} className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">Admin Panel</button>}
         <button onClick={() => handleMobileLinkClick(() => onNavigate('library'))} className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">{t('myLibrary')}</button>
-        <button onClick={() => handleMobileLinkClick(() => onNavigate('settings'))} className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">{t('settings')}</button>
         <div className="my-1 h-px bg-gray-200 dark:bg-gray-700"></div>
         <button onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="flex w-full items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-gray-700">{t('logout')}</button>
       </>
@@ -77,8 +76,9 @@ const Header: React.FC<HeaderProps> = ({
             
             <header className="sticky top-0 z-30 h-16 bg-white shadow-sm border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                 <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-full">
-                    {/* Left Side: Mobile Menu, Logo & Nav */}
-                    <div className="flex items-center gap-2">
+                    
+                    {/* Left Side: Logo & Nav */}
+                    <div className="flex items-center gap-4">
                          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 lg:hidden" aria-label="Open menu">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
                         </button>
@@ -88,8 +88,9 @@ const Header: React.FC<HeaderProps> = ({
                             </svg>
                             <span className="text-2xl hidden sm:inline">Mahama News</span>
                         </a>
-                        {/* Center: Desktop Navigation */}
-                        <nav className="hidden lg:flex items-center gap-2 ml-4">
+                        
+                        {/* Desktop Navigation */}
+                        <nav className="hidden lg:flex items-center gap-2">
                             {navLinks.map((topic) => (
                                 <button key={topic} onClick={() => onTopicSelect(topic)} className={`px-3 py-2 text-sm font-medium rounded-md relative transition-colors ${currentTopic === topic ? 'text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}>
                                     {t(topic as any)}
@@ -126,6 +127,9 @@ const Header: React.FC<HeaderProps> = ({
                         {isLoggedIn && user ? (
                            <div className="flex items-center gap-2">
                                 <NotificationsDropdown onNavigateToArticle={(articleId) => console.log("Navigate to", articleId)} />
+                                <button onClick={() => onNavigate('settings')} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" aria-label={t('settings')}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                </button>
                                 <div className="relative" ref={userMenuRef}>
                                     <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className="flex items-center" aria-label={t('userMenu')}>
                                         <div className="h-8 w-8 rounded-full bg-accent-100 text-accent-700 dark:bg-accent-800 dark:text-accent-300 flex items-center justify-center font-bold">{userInitial}</div>
@@ -163,7 +167,10 @@ const Header: React.FC<HeaderProps> = ({
                         </nav>
                         <div className="my-4 h-px bg-gray-200 dark:bg-gray-700"></div>
                         {isLoggedIn ? (
-                            <div className="flex flex-col gap-1"><UserMenuItems /></div>
+                            <div className="flex flex-col gap-1">
+                                <button onClick={() => handleMobileLinkClick(() => onNavigate('settings'))} className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">{t('settings')}</button>
+                                <UserMenuItems />
+                            </div>
                         ) : (
                             <button onClick={() => handleMobileLinkClick(() => setIsAuthModalOpen(true))} className="w-full px-4 py-2 rounded-md font-medium bg-accent-600 text-white hover:bg-accent-700">
                                 {t('login')}

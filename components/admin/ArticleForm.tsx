@@ -194,6 +194,12 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
         formData.append('videoUrl', articleToEdit.videoUrl);
     }
     
+    // Add poll data
+    if (pollQuestion.trim() && pollOptions.every(opt => opt.trim())) {
+        formData.append('pollQuestion', pollQuestion);
+        pollOptions.forEach(opt => formData.append('pollOptions[]', opt));
+    }
+    
     // The onFormSubmit prop will handle the article creation/update
     // and then we can create/update the poll with the returned article ID.
     onFormSubmit(formData, articleToEdit?.id);

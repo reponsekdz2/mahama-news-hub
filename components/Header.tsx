@@ -125,20 +125,22 @@ const Header: React.FC<HeaderProps> = ({
                         <ThemeToggle />
                         
                         {isLoggedIn && user ? (
-                           <div className="flex items-center gap-2">
-                                <NotificationsDropdown onNavigateToArticle={(articleId) => console.log("Navigate to", articleId)} />
+                           <>
                                 <button onClick={() => onNavigate('settings')} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" aria-label={t('settings')}>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                 </button>
-                                <div className="relative" ref={userMenuRef}>
-                                    <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className="flex items-center" aria-label={t('userMenu')}>
-                                        <div className="h-8 w-8 rounded-full bg-accent-100 text-accent-700 dark:bg-accent-800 dark:text-accent-300 flex items-center justify-center font-bold">{userInitial}</div>
-                                    </button>
-                                    {isUserMenuOpen && (
-                                        <div className="absolute top-full right-0 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700"><UserMenuItems /></div>
-                                    )}
-                                </div>
-                           </div>
+                               <div className="flex items-center gap-2">
+                                    <NotificationsDropdown onNavigateToArticle={(articleId) => console.log("Navigate to", articleId)} />
+                                    <div className="relative" ref={userMenuRef}>
+                                        <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className="flex items-center" aria-label={t('userMenu')}>
+                                            <div className="h-8 w-8 rounded-full bg-accent-100 text-accent-700 dark:bg-accent-800 dark:text-accent-300 flex items-center justify-center font-bold">{userInitial}</div>
+                                        </button>
+                                        {isUserMenuOpen && (
+                                            <div className="absolute top-full right-0 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700"><UserMenuItems /></div>
+                                        )}
+                                    </div>
+                               </div>
+                           </>
                         ) : (
                             <div className="flex items-center gap-2">
                                 <button onClick={() => setIsAuthModalOpen(true)} className="px-3 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-gray-900 dark:hover:text-white hidden sm:inline-flex">{t('login')}</button>

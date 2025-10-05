@@ -252,7 +252,7 @@ const updateArticle = async (req, res, next) => {
         
         await connection.commit();
         logAdminAction(req.user.id, 'update', 'article', id, { title });
-        res.json({ message: 'Article updated' });
+        res.json({ id: parseInt(id, 10), message: 'Article updated' });
     } catch (error) {
         await connection.rollback();
         // Cleanup newly uploaded files on error

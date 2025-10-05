@@ -1,8 +1,7 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, PropsWithChildren } from 'react';
 
-interface ErrorBoundaryProps {
-  children: ReactNode;
-}
+// FIX: Use PropsWithChildren for better type safety and to resolve potential inference issues with JSX children.
+type ErrorBoundaryProps = PropsWithChildren<{}>;
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -10,16 +9,13 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix for "Property 'props' does not exist on type 'ErrorBoundary'".
-  // Using a constructor to initialize state is a more robust pattern that ensures `this.props` is available
-  // and can resolve subtle tooling or type-checking errors.
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: undefined,
-    };
-  }
+  // FIX: Initialize state using a property initializer instead of a constructor.
+  // This is a modern and robust way to handle state in TypeScript class components
+  // and resolves the errors about 'state' and 'props' not existing on the component type.
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: undefined,
+  };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };

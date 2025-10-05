@@ -75,7 +75,7 @@ const Header: React.FC<HeaderProps> = ({
             {isSearchOverlayOpen && <SearchOverlay onClose={() => setIsSearchOverlayOpen(false)} onSearch={handleSearchSubmit} />}
             
             <header className="sticky top-0 z-30 h-16 bg-white shadow-sm border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-                <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-full">
+                <div className="mx-auto w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between h-full">
                     
                     {/* Left Side: Logo & Nav */}
                     <div className="flex items-center gap-4">

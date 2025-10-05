@@ -1,5 +1,12 @@
 const API_URL = '/api/gemini';
 
+export interface AnalysisResult {
+    suggestedTitle: string;
+    suggestedDescription: string;
+    suggestedTags: string[];
+    seoFeedback: string;
+}
+
 const handleResponse = async (response: Response) => {
     if (!response.ok) {
         const errorText = await response.text();
@@ -22,6 +29,18 @@ export const summarizeContent = async (content: string, token: string): Promise<
             'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ content })
+    });
+    return handleResponse(response);
+};
+
+export const analyzeContent = async (title: string, content: string, token: string): Promise<AnalysisResult> => {
+    const response = await fetch(`${API_URL}/analyze-content`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, content })
     });
     return handleResponse(response);
 };

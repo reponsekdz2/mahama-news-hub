@@ -244,8 +244,8 @@ const App: React.FC = () => {
         onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
         currentTopic={view === 'search' ? 'search' : currentTopic}
       />
-      <main className="flex-grow mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 lg:gap-8">
+      <main className="flex-grow mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 lg:gap-8 max-w-7xl mx-auto">
             <div className="lg:col-span-3">
                  {isPersistenceLoading ? <Spinner /> : renderContent()}
             </div>

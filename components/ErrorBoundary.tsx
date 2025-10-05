@@ -17,6 +17,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     error: undefined,
   };
 
+  // FIX: Add an explicit constructor to ensure `this.props` is correctly typed by TypeScript.
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+  }
+
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }

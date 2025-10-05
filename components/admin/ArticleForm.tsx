@@ -5,6 +5,9 @@ import { useLanguage, CATEGORIES } from '../../contexts/LanguageContext.tsx';
 import { createOrUpdatePoll } from '../../services/pollService.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 import { fetchTags } from '../../services/tagService.ts';
+import { analyzeContent, AnalysisResult } from '../../services/geminiService.ts';
+import ContentAnalysisModal from './ContentAnalysisModal.tsx';
+import Spinner from '../Spinner.tsx';
 
 interface ArticleFormProps {
   articleToEdit?: Partial<Article> | null;
@@ -82,6 +85,13 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
   
   const [allTags, setAllTags] = useState<string[]>([]);
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+  
+  // AI Analysis State
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState('');
+  const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+
 
   // Poll State
   const [pollQuestion, setPollQuestion] = useState('');
@@ -125,6 +135,29 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
     }
   }, [articleToEdit]);
   
+  const handleAnalyzeContent = async () => {
+      if(!user?.token || !title || !content) return;
+      setIsAnalyzing(true);
+      setAnalysisError('');
+      try {
+          const result = await analyzeContent(title, content, user.token);
+          setAnalysisData(result);
+          setIsAnalysisModalOpen(true);
+      } catch (err) {
+          setAnalysisError(err instanceof Error ? err.message : 'Failed to analyze content.');
+      } finally {
+          setIsAnalyzing(false);
+      }
+  };
+
+  const handleApplyAnalysis = (data: AnalysisResult) => {
+      setMetaTitle(data.suggestedTitle);
+      setMetaDescription(data.suggestedDescription);
+      setTags(data.suggestedTags.join(', '));
+      setIsAnalysisModalOpen(false);
+  };
+
+
   const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setTags(value);
@@ -206,6 +239,14 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
   };
 
   return (
+    <>
+    {isAnalysisModalOpen && analysisData && (
+        <ContentAnalysisModal
+            analysisData={analysisData}
+            onClose={() => setIsAnalysisModalOpen(false)}
+            onApply={handleApplyAnalysis}
+        />
+    )}
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -323,8 +364,15 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       
        {/* SEO Section */}
       <div className="border-t dark:border-gray-700 pt-6">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">SEO Settings</h3>
-        <div className="mt-4 space-y-4">
+        <div className="flex justify-between items-center mb-4">
+             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">SEO Settings</h3>
+             <button type="button" onClick={handleAnalyzeContent} disabled={isAnalyzing || !title || !content} className="btn-secondary text-sm flex items-center gap-2">
+                 {isAnalyzing ? <Spinner /> : <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 2a1 1 0 00-1 1v1.5a.5.5 0 00.5.5h1a.5.5 0 00.5-.5V3a1 1 0 00-1-1H5zM3 8.5a.5.5 0 01.5-.5h1a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1zM5 14a1 1 0 00-1 1v1.5a.5.5 0 00.5.5h1a.5.5 0 00.5-.5V15a1 1 0 00-1-1H5zM8.5 2a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1a.5.5 0 01.5-.5h1zM10 3.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM12 8.5a.5.5 0 01.5-.5h1a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1zM8.5 14a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1a.5.5 0 01.5-.5h1zM14 15a1 1 0 100-2 1 1 0 000 2zm-1.5-5.5a.5.5 0 00-.5.5v1a.5.5 0 00.5.5h1a.5.5 0 00.5-.5v-1a.5.5 0 00-.5-.5h-1z" clipRule="evenodd" /></svg>}
+                Analyze Content with AI
+            </button>
+        </div>
+        {analysisError && <p className="text-red-500 text-sm mb-2">{analysisError}</p>}
+        <div className="space-y-4">
             <div>
                 <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Meta Title</label>
                 <input type="text" id="metaTitle" value={metaTitle} onChange={e => setMetaTitle(e.target.value)} placeholder="A concise, SEO-friendly title" className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md" />
@@ -376,6 +424,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
         </button>
       </div>
     </form>
+    </>
   );
 };
 

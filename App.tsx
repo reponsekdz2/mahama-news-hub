@@ -1,77 +1,69 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from './contexts/AuthContext.tsx';
+import { useSettings } from './contexts/SettingsContext.tsx';
+import { useLanguage } from './contexts/LanguageContext.tsx';
+import { useLibrary } from './contexts/LibraryContext.tsx';
+import { fetchArticles, getArticleById, fetchRandomArticle } from './services/articleService.ts';
+import { Article } from './types.ts';
 import Header from './components/Header.tsx';
 import MainArticle from './components/MainArticle.tsx';
 import ArticleCard from './components/ArticleCard.tsx';
-import Spinner from './components/Spinner.tsx';
-import { Article, SiteSettings } from './types.ts';
-import { fetchArticles, fetchRandomArticle, getArticleById } from './services/articleService.ts';
-import { getSiteSettings } from './services/settingsService.ts';
-import { useAuth } from './contexts/AuthContext.tsx';
-import { useLanguage, CATEGORIES } from './contexts/LanguageContext.tsx';
-import { useSettings } from './contexts/SettingsContext.tsx';
-import { useLibrary } from './contexts/LibraryContext.tsx';
 import Footer from './components/Footer.tsx';
-import ArticleModal from './components/ArticleModal.tsx';
-import AuthModal from './components/AuthModal.tsx';
-import AdminPanel from './components/AdminPanel.tsx';
-import SettingsPage from './components/SettingsPage.tsx';
-import LibraryPage from './components/LibraryPage.tsx';
+import Spinner from './components/Spinner.tsx';
 import ErrorDisplay from './components/ErrorDisplay.tsx';
-import BackToTopButton from './components/BackToTopButton.tsx';
-import SearchOverlay from './components/SearchOverlay.tsx';
-import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
-import OfflineBanner from './components/OfflineBanner.tsx';
+import ArticleModal from './components/ArticleModal.tsx';
 import { MainArticleSkeleton, ArticleCardSkeleton } from './components/Skeletons.tsx';
+import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
+import BackToTopButton from './components/BackToTopButton.tsx';
+import AdminPanel from './components/AdminPanel.tsx';
+import LibraryPage from './components/LibraryPage.tsx';
+import SettingsPage from './components/SettingsPage.tsx';
+import OfflineBanner from './components/OfflineBanner.tsx';
 import SubscriptionPlanModal from './components/SubscriptionPlanModal.tsx';
-import Aside from './components/Aside.tsx';
-import TrendingArticles from './components/TrendingArticles.tsx';
+import { getSiteSettings } from './services/settingsService.ts';
 import MaintenancePage from './components/MaintenancePage.tsx';
 
 
-type View = 'home' | 'article' | 'admin' | 'settings' | 'library' | 'searchResults';
-
+// This export is needed by other files
 export interface SearchFilters {
   dateRange: 'all' | '24h' | '7d' | '30d';
   sortBy: 'newest' | 'oldest' | 'views' | 'likes';
 }
 
+type View = 'home' | 'search' | 'admin' | 'library' | 'settings' | 'surprise';
+
 const App: React.FC = () => {
-  const [view, setView] = useState<View>('home');
+  // States
   const [articles, setArticles] = useState<Article[]>([]);
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<string>(CATEGORIES[0]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
-  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
-  
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [currentTopic, setCurrentTopic] = useState('Top Stories');
+  const [view, setView] = useState<View>('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({ dateRange: 'all', sortBy: 'newest' });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [siteSettings, setSiteSettings] = useState<any>({});
 
-  const { user, isLoggedIn, login, hasActiveSubscription } = useAuth();
+
+  // Contexts
+  const { user, isLoggedIn } = useAuth();
   const { loadUserSettings, isPersistenceLoading } = useSettings();
   const { loadUserLanguage } = useLanguage();
   const { fetchLibrary } = useLibrary();
 
+  // Load user data on login
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const settings = await getSiteSettings();
-        setSiteSettings(settings);
-        document.title = (settings.site_title as string) || 'Mahama News TV';
-        const faviconLink = document.getElementById('favicon-link') as HTMLLinkElement;
-        if (faviconLink && settings.site_favicon_url) {
-          faviconLink.href = settings.site_favicon_url as string;
-        }
-      } catch (err) {
-        console.error("Failed to load site settings", err);
-      }
-    };
-    fetchSettings();
+    if (isLoggedIn && user?.token) {
+      loadUserSettings(user.token);
+      loadUserLanguage(user.token);
+      fetchLibrary();
+    }
+  }, [isLoggedIn, user?.token, loadUserSettings, loadUserLanguage, fetchLibrary]);
 
+  // Handle online/offline status
+  useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
@@ -81,20 +73,20 @@ const App: React.FC = () => {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
-  useEffect(() => {
-    if (user?.token) {
-      loadUserSettings(user.token);
-      loadUserLanguage(user.token);
-      fetchLibrary();
-    }
-  }, [user, login, loadUserSettings, loadUserLanguage, fetchLibrary]);
   
-  const loadArticles = useCallback(async (topic: string, filters: SearchFilters, query?: string) => {
+  // Fetch site settings on initial load
+  useEffect(() => {
+    getSiteSettings()
+        .then(setSiteSettings)
+        .catch(console.error);
+  }, []);
+
+  // Main article fetching logic
+  const loadArticles = useCallback(async (topic: string, filters: SearchFilters) => {
     setIsLoading(true);
     setError(null);
     try {
-      const fetchedArticles = await fetchArticles(query || topic, filters, user?.token);
+      const fetchedArticles = await fetchArticles(topic, filters, user?.token);
       setArticles(fetchedArticles);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -105,176 +97,147 @@ const App: React.FC = () => {
   }, [user?.token]);
 
   useEffect(() => {
-    if (view === 'home') {
-      loadArticles(selectedTopic, searchFilters);
+    if (view === 'home' || view === 'search') {
+      loadArticles(currentTopic, searchFilters);
     }
-  }, [selectedTopic, view, loadArticles, searchFilters]);
+  }, [currentTopic, searchFilters, view, loadArticles]);
 
-  const handleTopicChange = (topicKey: string) => {
-    if (topicKey === 'myLibrary') {
-        setView('library');
-        return;
-    }
-     if (topicKey === 'readingHistory') {
-        setSelectedTopic(topicKey);
-        setView('home');
-        return;
-    }
-    setSelectedTopic(topicKey);
-    setView('home');
-    window.scrollTo(0, 0);
-  };
-  
-  const handleReadMore = (article: Article) => {
-    if (article.isPremium && !hasActiveSubscription) {
-      setIsSubscriptionModalOpen(true);
-    } else {
-      setSelectedArticle(article);
-      setView('article');
-      window.scrollTo(0, 0);
-    }
-  };
-
-  const handleSelectTrending = async (articleId: string) => {
-      try {
-          const article = await getArticleById(articleId, user?.token);
-          handleReadMore(article);
-      } catch (err) {
-          setError(err instanceof Error ? err.message : "Could not load the article.");
-      }
-  };
-
-  const handleNavigate = (newView: 'admin' | 'settings') => {
-    setView(newView);
-    window.scrollTo(0, 0);
-  };
-  
-  const handleSearch = (params: { query: string, filters: SearchFilters }) => {
-    setSearchQuery(params.query);
-    setSearchFilters(params.filters);
-    setView('searchResults');
-    loadArticles('Search Results', params.filters, params.query);
-    setIsSearchOverlayOpen(false);
-    window.scrollTo(0, 0);
-  };
-  
-  const handleSurpriseMe = async () => {
-    setIsLoading(true);
+  const handleReadArticle = async (article: Article) => {
     try {
-      const article = await fetchRandomArticle(user?.token);
-      if(article) {
-        handleReadMore(article);
-      }
+      // Fetch the full article details to ensure content is not truncated
+      const fullArticle = await getArticleById(article.id, user?.token);
+      setSelectedArticle(fullArticle);
+      window.scrollTo(0, 0);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not find an article for you.');
-    } finally {
-      setIsLoading(false);
+      setError(err instanceof Error ? err.message : 'Failed to load article details.');
     }
   };
 
-  const handleBackToNews = () => {
-    setView('home');
-    setSelectedArticle(null);
-     // Reset SEO tags when going back to the main view
-    document.title = (siteSettings.site_title as string) || 'Mahama News TV';
-    const metaDesc = document.getElementById('meta-description');
-    if (metaDesc) {
-      metaDesc.setAttribute('content', 'A personalized news hub. Get the latest articles, customize your theme, and share stories with ease.');
-    }
+  const handleSurpriseMe = async () => {
+      setView('surprise');
+      setIsLoading(true);
+      setError(null);
+      try {
+          const article = await fetchRandomArticle(user?.token);
+          if (article) {
+              setSelectedArticle(article);
+          } else {
+              setError("Couldn't find an article to surprise you with!");
+          }
+      } catch(err) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch a random article.');
+      } finally {
+          setIsLoading(false);
+          // Set view back to home after modal is closed
+          setTimeout(() => setView('home'), 100);
+      }
+  }
+
+  const handleSearch = ({ query, filters }: { query: string, filters: SearchFilters }) => {
+    setSearchQuery(query);
+    setSearchFilters(filters);
+    setCurrentTopic('all');
+    setView('search');
+    window.scrollTo(0, 0);
   };
   
+  const handleNavigate = (targetView: View) => {
+      setView(targetView);
+      setSearchQuery('');
+      setCurrentTopic('Top Stories');
+      window.scrollTo(0, 0);
+  }
+
+  const mainArticle = articles.length > 0 ? articles[0] : null;
+  const otherArticles = articles.length > 1 ? articles.slice(1) : [];
+
   if (siteSettings.maintenance_mode === 'true' && user?.role !== 'admin') {
-    return <MaintenancePage />;
+      return <MaintenancePage />;
   }
 
   const renderContent = () => {
-    if (isPersistenceLoading) {
-      return <div className="min-h-screen"><Spinner /></div>;
+    if (view === 'admin' && user?.role === 'admin') {
+      return <AdminPanel onNavigateBack={() => handleNavigate('home')} />;
     }
-    
+    if (view === 'library' && isLoggedIn) {
+      return <LibraryPage onNavigateBack={() => handleNavigate('home')} onReadArticle={handleReadArticle} />;
+    }
+    if (view === 'settings' && isLoggedIn) {
+      return <SettingsPage onNavigateBack={() => handleNavigate('home')} />;
+    }
+
     if (error) {
-      return <ErrorDisplay message={error} onRetry={() => loadArticles(selectedTopic, searchFilters, view === 'searchResults' ? searchQuery : undefined)} />;
+      return <ErrorDisplay message={error} onRetry={() => loadArticles(currentTopic, searchFilters)} />;
     }
 
-    switch (view) {
-      case 'article':
-        return selectedArticle ? <ArticleModal article={selectedArticle} onClose={handleBackToNews} onReadAnother={handleReadMore} /> : <Spinner />;
-      case 'admin':
-        return <AdminPanel onNavigateBack={handleBackToNews} />;
-      case 'settings':
-        return <SettingsPage onNavigateBack={handleBackToNews} />;
-      case 'library':
-        return <LibraryPage onNavigateBack={handleBackToNews} onReadArticle={handleReadMore} />;
-      case 'home':
-      case 'searchResults':
-        const mainArticle = articles[0];
-        const otherArticles = articles.slice(1);
-        const title = view === 'searchResults' ? `Results for "${searchQuery}"` : selectedTopic;
-        const currentCategory = CATEGORIES.includes(selectedTopic) ? selectedTopic : mainArticle?.category;
+    return (
+      <>
+        {view === 'search' && (
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+              Search results for: "{searchQuery}"
+            </h2>
+            <AdvancedSearchBar filters={searchFilters} onFiltersChange={setSearchFilters} />
+          </div>
+        )}
 
-        return (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-9">
-                    <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white mb-4 capitalize">{title}</h1>
-                    {view === 'searchResults' && <AdvancedSearchBar filters={searchFilters} onFiltersChange={setSearchFilters} />}
-                    {isLoading ? (
-                    <>
-                        <MainArticleSkeleton />
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-                        {[...Array(6)].map((_, i) => <ArticleCardSkeleton key={i} />)}
-                        </div>
-                    </>
-                    ) : articles.length > 0 ? (
-                    <>
-                        {mainArticle && <MainArticle article={mainArticle} onReadMore={() => handleReadMore(mainArticle)} />}
-                        {otherArticles.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                            {otherArticles.map(article => (
-                            <ArticleCard key={article.id} article={article} onReadMore={() => handleReadMore(article)} />
-                            ))}
-                        </div>
-                        )}
-                    </>
-                    ) : (
-                    <p className="text-center py-12 text-gray-500 dark:text-gray-400">No articles found for this topic.</p>
-                    )}
-                </div>
-                 <aside className="lg:col-span-3">
-                    <div className="sticky top-20 space-y-8">
-                        <TrendingArticles onArticleSelect={handleSelectTrending} />
-                        <Aside 
-                            category={currentCategory} 
-                            onSubscribeClick={() => setIsSubscriptionModalOpen(true)} 
-                        />
-                    </div>
-                </aside>
+        {isLoading ? (
+          <>
+            <MainArticleSkeleton />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+              {[...Array(6)].map((_, i) => <ArticleCardSkeleton key={i} />)}
             </div>
-        );
-      default:
-        return null;
-    }
+          </>
+        ) : (
+          <>
+            {mainArticle ? (
+              <MainArticle article={mainArticle} onReadMore={handleReadArticle} />
+            ) : (
+               <div className="text-center py-12">
+                  <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">No articles found.</h2>
+                  <p className="text-gray-500 dark:text-gray-400 mt-2">Try adjusting your search or filters.</p>
+              </div>
+            )}
+            {otherArticles.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+                {otherArticles.map(article => (
+                  <ArticleCard key={article.id} article={article} onReadMore={handleReadArticle} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </>
+    );
   };
 
   return (
-    <div className="bg-gray-100 dark:bg-gray-900 min-h-screen font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen font-sans">
       {!isOnline && <OfflineBanner />}
       <Header
-        logoUrl={siteSettings.site_logo_url as string || ''}
-        selectedTopic={selectedTopic}
-        onTopicChange={handleTopicChange}
-        onSearch={() => setIsSearchOverlayOpen(true)}
-        onSurpriseMe={handleSurpriseMe}
-        onOpenLogin={() => setIsAuthModalOpen(true)}
+        onTopicSelect={topic => {
+          setCurrentTopic(topic);
+          setView('home');
+          setSearchQuery('');
+        }}
+        onSearch={handleSearch}
         onNavigate={handleNavigate}
+        onSurpriseMe={handleSurpriseMe}
+        onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
+        currentTopic={currentTopic}
       />
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {renderContent()}
+        {isPersistenceLoading ? <Spinner /> : renderContent()}
       </main>
       <Footer />
       <BackToTopButton />
-      
-      {isAuthModalOpen && <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />}
-      {isSearchOverlayOpen && <SearchOverlay onClose={() => setIsSearchOverlayOpen(false)} onSearch={handleSearch} />}
+      {selectedArticle && (
+        <ArticleModal
+          article={selectedArticle}
+          onClose={() => setSelectedArticle(null)}
+          onArticleNavigate={handleReadArticle}
+        />
+      )}
       {isSubscriptionModalOpen && <SubscriptionPlanModal onClose={() => setIsSubscriptionModalOpen(false)} />}
     </div>
   );

@@ -30,48 +30,6 @@ interface SearchOverlayProps {
     onSearch: (params: { query: string; filters: SearchFilters }) => void;
 }
 
-const CustomSelect: React.FC<{
-    label: string;
-    options: { value: string; label: string }[];
-    value: string;
-    onChange: (value: string) => void;
-}> = ({ label, options, value, onChange }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const wrapperRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const selectedLabel = options.find(opt => opt.value === value)?.label || '';
-
-    return (
-        <div className="relative w-full" ref={wrapperRef}>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>
-            <button type="button" onClick={() => setIsOpen(!isOpen)} className="flex items-center justify-between w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-left">
-                <span>{selectedLabel}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-gray-400"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15 12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
-            </button>
-            {isOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-y-auto z-10 p-1">
-                    {options.map(opt => (
-                        <div key={opt.value} onClick={() => { onChange(opt.value); setIsOpen(false); }} className={`px-3 py-2 text-sm rounded cursor-pointer ${value === opt.value ? 'bg-accent-100 text-accent-800 dark:bg-accent-900/50 dark:text-accent-300' : 'hover:bg-gray-100 dark:hover:bg-gray-600'}`}>
-                            {opt.label}
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
-
 const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
     const { t } = useLanguage();
     const { user } = useAuth();
@@ -152,7 +110,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        const allItems = [...suggestions.map(s => s.title), ...recentSearches];
+        const allItems = [...suggestions, ...recentSearches, ...trending];
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             setActiveIndex(prev => (prev < allItems.length - 1 ? prev + 1 : prev));
@@ -162,7 +120,9 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
         } else if (e.key === 'Enter') {
             e.preventDefault();
             if (activeIndex > -1 && allItems[activeIndex]) {
-                handleSearch(allItems[activeIndex]);
+                const item = allItems[activeIndex];
+                const searchTerm = typeof item === 'string' ? item : item.title;
+                handleSearch(searchTerm);
             } else {
                 handleSearch(query);
             }
@@ -195,47 +155,66 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
                     </div>
                 </div>
 
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center gap-4">
-                    <CustomSelect label={t('dateRange')} value={filters.dateRange} onChange={val => setFilters(f => ({...f, dateRange: val as any}))} options={[ {value: 'all', label: t('allTime')}, {value: '24h', label: t('past24Hours')}, {value: '7d', label: t('pastWeek')}, {value: '30d', label: t('pastMonth')} ]} />
-                    <CustomSelect label={t('sortBy')} value={filters.sortBy} onChange={val => setFilters(f => ({...f, sortBy: val as any}))} options={[ {value: 'newest', label: t('newest')}, {value: 'oldest', label: t('oldest')}, {value: 'views', label: t('mostViews')}, {value: 'likes', label: t('mostLikes')} ]} />
+                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center gap-4">
+                     <div className="w-full sm:w-1/2">
+                        <label htmlFor="dateRange" className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t('dateRange')}</label>
+                        <select id="dateRange" name="dateRange" value={filters.dateRange} onChange={(e) => setFilters(f => ({...f, dateRange: e.target.value as any}))} className="mt-1 form-select">
+                            <option value="all">{t('allTime')}</option>
+                            <option value="24h">{t('past24Hours')}</option>
+                            <option value="7d">{t('pastWeek')}</option>
+                            <option value="30d">{t('pastMonth')}</option>
+                        </select>
+                    </div>
+                    <div className="w-full sm:w-1/2">
+                        <label htmlFor="sortBy" className="block text-xs font-medium text-gray-500 dark:text-gray-400">{t('sortBy')}</label>
+                        <select id="sortBy" name="sortBy" value={filters.sortBy} onChange={(e) => setFilters(f => ({...f, sortBy: e.target.value as any}))} className="mt-1 form-select">
+                            <option value="newest">{t('newest')}</option>
+                            <option value="oldest">{t('oldest')}</option>
+                            <option value="views">{t('mostViews')}</option>
+                            <option value="likes">{t('mostLikes')}</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div className="p-4 max-h-[calc(60vh-10rem)] overflow-y-auto">
                     {isLoading && <div className="text-center py-4 text-sm text-gray-500">Searching...</div>}
-                    {debouncedQuery && suggestions.length > 0 && (
-                        <div className="mb-4">
-                            <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('searchSuggestions')}</h3>
-                            <ul className="mt-1">
-                                {suggestions.map((s, idx) => (
-                                    <li key={s.id}><button onClick={() => handleSearch(s.title)} onMouseEnter={() => setActiveIndex(idx)} className={`w-full text-left px-3 py-2 rounded-md text-sm ${activeIndex === idx ? 'bg-gray-100 dark:bg-gray-700' : ''}`}>{s.title}</button></li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
                     
-                    {debouncedQuery && !isLoading && suggestions.length === 0 && (<p className="text-center py-4 text-sm text-gray-500">{t('noSuggestions')}</p>)}
-
-                    {!debouncedQuery && recentSearches.length > 0 && (
-                         <div className="mb-4">
-                            <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('recentSearches')}</h3>
-                            <ul className="mt-1">
-                                {recentSearches.map((s, idx) => (
-                                    <li key={idx}><button onClick={() => handleSearch(s)} onMouseEnter={() => setActiveIndex(suggestions.length + idx)} className={`w-full text-left px-3 py-2 rounded-md text-sm ${activeIndex === suggestions.length + idx ? 'bg-gray-100 dark:bg-gray-700' : ''}`}>{s}</button></li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-
-                    {!debouncedQuery && trending.length > 0 && (
-                        <div>
-                            <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('trendingArticles')}</h3>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                                {trending.map(item => (
-                                    <button key={item.id} onClick={() => handleSearch(item.title)} className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-sm rounded-full hover:bg-gray-200 dark:hover:bg-gray-600">
-                                        {item.title}
-                                    </button>
-                                ))}
-                            </div>
+                    {debouncedQuery ? (
+                        <>
+                            {suggestions.length > 0 && (
+                                <div>
+                                    <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('searchSuggestions')}</h3>
+                                    <ul className="mt-1">
+                                        {suggestions.map((s, idx) => (
+                                            <li key={s.id}><button onClick={() => handleSearch(s.title)} onMouseEnter={() => setActiveIndex(idx)} className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-3 ${activeIndex === idx ? 'bg-gray-100 dark:bg-gray-700' : ''}`}><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>{s.title}</button></li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {suggestions.length === 0 && !isLoading && (<p className="text-center py-4 text-sm text-gray-500">{t('noSuggestions')}</p>)}
+                        </>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                            {recentSearches.length > 0 && (
+                                <div>
+                                    <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('recentSearches')}</h3>
+                                    <ul className="mt-1">
+                                        {recentSearches.map((s, idx) => (
+                                            <li key={idx}><button onClick={() => handleSearch(s)} onMouseEnter={() => setActiveIndex(suggestions.length + idx)} className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-3 ${activeIndex === suggestions.length + idx ? 'bg-gray-100 dark:bg-gray-700' : ''}`}><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>{s}</button></li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                             {trending.length > 0 && (
+                                <div>
+                                    <h3 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('trendingArticles')}</h3>
+                                     <ul className="mt-1">
+                                        {trending.map((item, idx) => (
+                                             <li key={item.id}><button onClick={() => handleSearch(item.title)} className="w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.934l-6.75 12.25a1 1 0 001.64.903l6.75-12.25a1 1 0 00-.618-1.502z" clipRule="evenodd" /></svg>{item.title}</button></li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

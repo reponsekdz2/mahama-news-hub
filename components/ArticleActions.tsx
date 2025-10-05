@@ -10,9 +10,11 @@ import useSpeechSynthesis from '../hooks/useSpeechSynthesis.ts';
 
 interface ArticleActionsProps {
     article: Article;
+    onSummarize: () => void;
+    isSummarizing: boolean;
 }
 
-const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
+const ArticleActions: React.FC<ArticleActionsProps> = ({ article, onSummarize, isSummarizing }) => {
     const { isLoggedIn, user, hasActiveSubscription } = useAuth();
     const { t } = useLanguage();
     const { isArticleInLibrary } = useLibrary();
@@ -130,6 +132,12 @@ const ArticleActions: React.FC<ArticleActionsProps> = ({ article }) => {
                     <span>{likeCount} Likes</span>
                 </div>
                 <div className="flex items-center space-x-1">
+                    {/* AI SUMMARY BUTTON */}
+                    <button onClick={onSummarize} disabled={!isLoggedIn || isSummarizing} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300">
+                         <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${isSummarizing ? 'animate-spin' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 2a1 1 0 00-1 1v1.5a.5.5 0 00.5.5h1a.5.5 0 00.5-.5V3a1 1 0 00-1-1H5zM3 8.5a.5.5 0 01.5-.5h1a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1zM5 14a1 1 0 00-1 1v1.5a.5.5 0 00.5.5h1a.5.5 0 00.5-.5V15a1 1 0 00-1-1H5zM8.5 2a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1a.5.5 0 01.5-.5h1zM10 3.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM12 8.5a.5.5 0 01.5-.5h1a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1zM8.5 14a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1a.5.5 0 01.5-.5h1zM14 15a1 1 0 100-2 1 1 0 000 2zm-1.5-5.5a.5.5 0 00-.5.5v1a.5.5 0 00.5.5h1a.5.5 0 00.5-.5v-1a.5.5 0 00-.5-.5h-1z" clipRule="evenodd" /></svg>
+                        <span className="hidden sm:inline">AI Summary</span>
+                    </button>
+
                     {/* TTS CONTROLS */}
                     <div className="flex items-center rounded-full bg-gray-100 dark:bg-gray-700 p-1">
                         {!isPlaying && !isPaused ? (

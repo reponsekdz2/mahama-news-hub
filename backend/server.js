@@ -47,6 +47,7 @@ app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 app.use('/api/push', require('./routes/pushRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/search', require('./routes/searchRoutes'));
+app.use('/api/gemini', require('./routes/geminiRoutes'));
 
 
 // Utility routes (RSS, Sitemap)

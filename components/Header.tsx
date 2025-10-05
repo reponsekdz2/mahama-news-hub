@@ -77,8 +77,8 @@ const Header: React.FC<HeaderProps> = ({
             
             <header className="sticky top-0 z-30 h-16 bg-white shadow-sm border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                 <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-full">
-                    {/* Left Side: Mobile Menu & Logo */}
-                    <div className="flex items-center gap-4">
+                    {/* Left Side: Mobile Menu, Logo & Nav */}
+                    <div className="flex items-center gap-2">
                          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 lg:hidden" aria-label="Open menu">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
                         </button>
@@ -88,17 +88,16 @@ const Header: React.FC<HeaderProps> = ({
                             </svg>
                             <span className="text-2xl hidden sm:inline">Mahama News</span>
                         </a>
+                        {/* Center: Desktop Navigation */}
+                        <nav className="hidden lg:flex items-center gap-2 ml-4">
+                            {navLinks.map((topic) => (
+                                <button key={topic} onClick={() => onTopicSelect(topic)} className={`px-3 py-2 text-sm font-medium rounded-md relative transition-colors ${currentTopic === topic ? 'text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}>
+                                    {t(topic as any)}
+                                    {currentTopic === topic && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500"></span>}
+                                </button>
+                            ))}
+                        </nav>
                     </div>
-
-                    {/* Center: Desktop Navigation */}
-                    <nav className="hidden lg:flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
-                        {navLinks.map((topic) => (
-                            <button key={topic} onClick={() => onTopicSelect(topic)} className={`px-3 py-2 text-sm font-medium rounded-md relative transition-colors ${currentTopic === topic ? 'text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}>
-                                {t(topic as any)}
-                                {currentTopic === topic && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500"></span>}
-                            </button>
-                        ))}
-                    </nav>
 
                     {/* Right Side: Actions */}
                     <div className="flex items-center gap-1 sm:gap-2">

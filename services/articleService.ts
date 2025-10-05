@@ -28,7 +28,7 @@ const handleResponse = async (response: Response) => {
     }
 };
 
-export const fetchArticles = async (topic: string, filters: SearchFilters, token?: string): Promise<Article[]> => {
+export const fetchArticles = async (topic: string, filters: SearchFilters, token?: string, query?: string): Promise<Article[]> => {
     const headers: HeadersInit = {};
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -38,6 +38,10 @@ export const fetchArticles = async (topic: string, filters: SearchFilters, token
         dateRange: filters.dateRange,
         sortBy: filters.sortBy
     });
+    
+    if (query) {
+        params.append('q', query);
+    }
 
     const response = await fetch(`${API_URL}?${params.toString()}`, { headers });
     const data = await handleResponse(response);

@@ -83,11 +83,11 @@ const App: React.FC = () => {
   }, []);
 
   // Main article fetching logic
-  const loadArticles = useCallback(async (topic: string, filters: SearchFilters) => {
+  const loadArticles = useCallback(async (topic: string, filters: SearchFilters, query?: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const fetchedArticles = await fetchArticles(topic, filters, user?.token);
+      const fetchedArticles = await fetchArticles(topic, filters, user?.token, query);
       setArticles(fetchedArticles);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -98,10 +98,12 @@ const App: React.FC = () => {
   }, [user?.token]);
 
   useEffect(() => {
-    if (view === 'home' || view === 'search') {
+    if (view === 'home') {
       loadArticles(currentTopic, searchFilters);
+    } else if (view === 'search') {
+      loadArticles('all', searchFilters, searchQuery);
     }
-  }, [currentTopic, searchFilters, view, loadArticles]);
+  }, [currentTopic, searchFilters, view, searchQuery, loadArticles]);
 
   const handleReadArticle = async (article: Article) => {
     try {
@@ -149,7 +151,7 @@ const App: React.FC = () => {
   const handleSearch = ({ query, filters }: { query: string, filters: SearchFilters }) => {
     setSearchQuery(query);
     setSearchFilters(filters);
-    setCurrentTopic('all');
+    setCurrentTopic('all'); // This will be ignored in favor of the query
     setView('search');
     window.scrollTo(0, 0);
   };
@@ -185,7 +187,7 @@ const App: React.FC = () => {
     }
 
     if (error) {
-      return <ErrorDisplay message={error} onRetry={() => loadArticles(currentTopic, searchFilters)} />;
+      return <ErrorDisplay message={error} onRetry={() => loadArticles(currentTopic, searchFilters, searchQuery)} />;
     }
 
     return (
@@ -193,9 +195,8 @@ const App: React.FC = () => {
         {view === 'search' && (
           <div className="mb-4">
             <h2 className="text-2xl font-bold">
-              Search results for: "{searchQuery}"
+              Search results for: <span className="text-accent-600 dark:text-accent-400">"{searchQuery}"</span>
             </h2>
-            <AdvancedSearchBar filters={searchFilters} onFiltersChange={setSearchFilters} />
           </div>
         )}
 
@@ -242,7 +243,7 @@ const App: React.FC = () => {
         onNavigate={handleNavigate}
         onSurpriseMe={handleSurpriseMe}
         onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
-        currentTopic={currentTopic}
+        currentTopic={view === 'search' ? 'search' : currentTopic}
       />
       <main className="flex-grow mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 lg:gap-8">
@@ -254,6 +255,7 @@ const App: React.FC = () => {
                     <Aside 
                         onArticleSelect={handleReadArticleById}
                         onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
+                        onTagSelect={(tag) => handleSearch({ query: tag, filters: { dateRange: 'all', sortBy: 'newest' }})}
                         category={currentTopic}
                     />
                 </div>
@@ -267,6 +269,7 @@ const App: React.FC = () => {
           article={selectedArticle}
           onClose={handleCloseArticle}
           onArticleNavigate={handleReadArticle}
+          onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
         />
       )}
       {isSubscriptionModalOpen && <SubscriptionPlanModal onClose={() => setIsSubscriptionModalOpen(false)} />}

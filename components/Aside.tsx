@@ -3,16 +3,19 @@ import { Advertisement } from '../types.ts';
 import { fetchSidebarAds, trackAdClick, trackAdImpression } from '../services/adService.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import TrendingArticles from './TrendingArticles.tsx';
+import { fetchTags } from '../services/tagService.ts';
+
+interface Tag { id: number; name: string; }
 
 interface AsideProps {
     category?: string;
     onSubscribeClick: () => void;
     onArticleSelect: (articleId: string) => void;
+    onTagSelect: (tag: string) => void;
 }
 
 const AdContainer: React.FC<{ad: Advertisement, viewedAds: React.MutableRefObject<Set<string>>}> = ({ ad, viewedAds }) => {
     const adRef = React.useRef<HTMLDivElement>(null);
-    const [isVisible, setIsVisible] = useState(false);
     
     const trackClick = () => {
         trackAdClick(ad.id).catch(err => console.error("Failed to track ad click", err));
@@ -21,7 +24,6 @@ const AdContainer: React.FC<{ad: Advertisement, viewedAds: React.MutableRefObjec
     useEffect(() => {
         const observer = new IntersectionObserver(([entry]) => {
             if (entry.isIntersecting) {
-                setIsVisible(true);
                 if (!viewedAds.current.has(ad.id)) {
                     viewedAds.current.add(ad.id);
                     trackAdImpression(ad.id).catch(err => console.error("Failed to track ad impression", err));
@@ -40,10 +42,7 @@ const AdContainer: React.FC<{ad: Advertisement, viewedAds: React.MutableRefObjec
     }, [ad.id, viewedAds]);
 
     return (
-        <div 
-            ref={adRef} 
-            className={`transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-        >
+        <div ref={adRef}>
             <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer" onClick={trackClick} className="block group">
                 <p className="text-xs text-gray-400 dark:text-gray-500 mb-2 text-right">Advertisement</p>
                 <div className="overflow-hidden rounded-md border border-gray-200 dark:border-gray-700 group-hover:shadow-lg transition-shadow">
@@ -66,8 +65,34 @@ const AdContainer: React.FC<{ad: Advertisement, viewedAds: React.MutableRefObjec
     );
 };
 
+const TagCloud: React.FC<{ onTagSelect: (tag: string) => void }> = ({ onTagSelect }) => {
+    const [tags, setTags] = useState<Tag[]>([]);
+    useEffect(() => {
+        fetchTags().then(fetchedTags => setTags(fetchedTags.slice(0, 15))).catch(console.error);
+    }, []);
 
-const Aside: React.FC<AsideProps> = ({ category, onSubscribeClick, onArticleSelect }) => {
+    if (tags.length === 0) return null;
+
+    return (
+        <div className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+            <h3 className="pb-3 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500 uppercase tracking-wider">Popular Tags</h3>
+            <div className="flex flex-wrap gap-2 mt-4">
+                {tags.map(tag => (
+                    <button 
+                        key={tag.id} 
+                        onClick={() => onTagSelect(tag.name)}
+                        className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-300 rounded-full hover:bg-accent-100 dark:hover:bg-accent-900/50 hover:text-accent-700 dark:hover:text-accent-300 transition-colors"
+                    >
+                        {tag.name}
+                    </button>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+
+const Aside: React.FC<AsideProps> = ({ category, onSubscribeClick, onArticleSelect, onTagSelect }) => {
     const { hasActiveSubscription } = useAuth();
     const [ads, setAds] = useState<Advertisement[]>([]);
     const viewedAds = React.useRef(new Set<string>());
@@ -83,14 +108,14 @@ const Aside: React.FC<AsideProps> = ({ category, onSubscribeClick, onArticleSele
     return (
         <div className="space-y-8">
             {!hasActiveSubscription && (
-                <div className="p-6 text-center bg-white dark:bg-gray-800 border border-accent-400 rounded-lg shadow-sm bg-gradient-to-tr from-accent-50/50 dark:from-accent-900/20">
+                <div className="p-6 text-center bg-gradient-to-br from-accent-50 to-white dark:from-accent-900/30 dark:to-gray-900 border-2 border-accent-400 rounded-lg shadow-lg">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white">Go Premium!</h3>
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                         Unlock all articles and enjoy an ad-free experience.
                     </p>
                     <button 
                         onClick={onSubscribeClick}
-                        className="mt-4 w-full px-4 py-2 bg-accent-600 text-white rounded-md text-sm font-medium hover:bg-accent-700"
+                        className="mt-4 w-full px-4 py-2 bg-accent-600 text-white rounded-md text-sm font-medium hover:bg-accent-700 transition-transform hover:scale-105"
                     >
                         Subscribe Now
                     </button>
@@ -100,6 +125,8 @@ const Aside: React.FC<AsideProps> = ({ category, onSubscribeClick, onArticleSele
             <div className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
                  <TrendingArticles onArticleSelect={onArticleSelect} />
             </div>
+
+            <TagCloud onTagSelect={onTagSelect} />
 
             {!hasActiveSubscription && ads.length > 0 && ads.map(ad => (
                 <div key={ad.id} className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm transition-shadow hover:shadow-accent-500/20">

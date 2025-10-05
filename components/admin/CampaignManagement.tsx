@@ -84,7 +84,7 @@ const CampaignManagement: React.FC = () => {
                             Create New Campaign
                         </button>
                     </div>
-                    {error && <p className="text-red-500 mb-4 bg-red-100 dark:bg-red-900/50 p-3 rounded-md">{error}</p>}
+                    {error && <p className="admin-error-box">{error}</p>}
                     <div className="overflow-x-auto card">
                          <table className="admin-table">
                             <thead>
@@ -112,8 +112,8 @@ const CampaignManagement: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="text-right font-medium space-x-4">
-                                        <button onClick={() => handleOpenForm(c)} className="text-accent-600 hover:text-accent-900 dark:text-accent-400 dark:hover:text-accent-200">Edit</button>
-                                        <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Delete</button>
+                                        <button onClick={() => handleOpenForm(c)} className="btn-text-accent">Edit</button>
+                                        <button onClick={() => handleDelete(c.id)} className="btn-text-danger">Delete</button>
                                     </td>
                                 </tr>
                                 ))}

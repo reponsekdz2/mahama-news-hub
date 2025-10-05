@@ -11,27 +11,27 @@ const ArticleCard: React.FC<ArticleCardProps> = ({ article, onReadMore }) => {
     const readingTime = calculateReadingTime(article.summary);
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col transition-transform transform hover:-translate-y-1 hover:shadow-lg">
-            <button onClick={() => onReadMore(article)} className="block w-full">
-                <img className="h-48 w-full object-cover" src={article.imageUrl} alt={article.title} />
+        <div className="card article-card group">
+            <button onClick={() => onReadMore(article)} className="article-card-image-wrapper">
+                <img className="article-card-image" src={article.imageUrl} alt={article.title} />
             </button>
-            <div className="p-4 flex flex-col flex-grow">
+            <div className="article-card-content">
                 <div>
                     <div className="flex justify-between items-center">
                         <span className="text-xs font-semibold text-accent-600 dark:text-accent-400 uppercase">{article.category}</span>
-                        {article.isPremium && <span className="text-xs font-bold text-yellow-500 bg-yellow-100 dark:bg-yellow-900/50 px-2 py-1 rounded-full">PREMIUM</span>}
+                        {article.isPremium && <span className="badge badge-premium">PREMIUM</span>}
                     </div>
                     <button onClick={() => onReadMore(article)} className="block mt-2">
-                        <h3 className="text-lg leading-tight font-bold text-gray-900 dark:text-white hover:text-accent-600 dark:hover:text-accent-400 text-left">
+                        <h3 className="article-card-title">
                             {article.title}
                         </h3>
                     </button>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 article-summary-clamp-sm">
+                    <p className="article-card-summary">
                         {article.summary}
                     </p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 flex-grow flex flex-col justify-end">
-                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                <div className="article-card-footer">
+                    <div className="article-card-meta">
                         <span>{article.authorName}</span>
                         <span className="mx-2">&bull;</span>
                         <span>{readingTime} min read</span>

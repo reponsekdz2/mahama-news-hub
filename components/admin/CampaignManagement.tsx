@@ -80,37 +80,48 @@ const CampaignManagement: React.FC = () => {
                 <>
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold">Manage Ad Campaigns ({campaigns.length})</h2>
-                        <button onClick={() => handleOpenForm()} className="px-4 py-2 bg-accent-600 text-white rounded-md text-sm font-medium hover:bg-accent-700">
+                        <button onClick={() => handleOpenForm()} className="btn btn-primary">
                             Create New Campaign
                         </button>
                     </div>
-                    {error && <p className="text-red-500 mb-4">{error}</p>}
-                    <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
-                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-700">
+                    {error && <p className="text-red-500 mb-4 bg-red-100 dark:bg-red-900/50 p-3 rounded-md">{error}</p>}
+                    <div className="overflow-x-auto card">
+                         <table className="admin-table">
+                            <thead>
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Dates</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Budget</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Status</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium uppercase">Actions</th>
+                                    <th>Name</th>
+                                    <th>Dates</th>
+                                    <th>Budget</th>
+                                    <th>Status</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
                             </thead>
-                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                             <tbody>
                                 {campaigns.map(c => (
                                 <tr key={c.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{c.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date(c.startDate).toLocaleDateString()} - {new Date(c.endDate).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">${c.budget.toLocaleString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm capitalize">{c.status}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                        <button onClick={() => handleOpenForm(c)} className="text-accent-600 hover:text-accent-900">Edit</button>
-                                        <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                                    <td className="font-medium text-gray-900 dark:text-white">{c.name}</td>
+                                    <td>{new Date(c.startDate).toLocaleDateString()} - {new Date(c.endDate).toLocaleDateString()}</td>
+                                    <td>${c.budget.toLocaleString()}</td>
+                                    <td>
+                                        <span className={`badge capitalize ${
+                                            c.status === 'active' ? 'badge-published' : 
+                                            c.status === 'paused' ? 'badge-draft' : 
+                                            'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
+                                        }`}>
+                                            {c.status}
+                                        </span>
+                                    </td>
+                                    <td className="text-right font-medium space-x-4">
+                                        <button onClick={() => handleOpenForm(c)} className="text-accent-600 hover:text-accent-900 dark:text-accent-400 dark:hover:text-accent-200">Edit</button>
+                                        <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Delete</button>
                                     </td>
                                 </tr>
                                 ))}
                             </tbody>
                         </table>
+                        {campaigns.length === 0 && (
+                            <p className="text-center py-8 text-gray-500 dark:text-gray-400">No campaigns found. Create one to get started.</p>
+                        )}
                     </div>
                 </>
             )}

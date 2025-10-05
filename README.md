@@ -56,10 +56,11 @@ A comprehensive, secure admin panel provides full control over the platform.
 
 ## 🛠 Tech Stack
 
-*   **Frontend**: React, TypeScript, Tailwind CSS
+*   **Frontend**: React, TypeScript, Vite
 *   **Backend**: Node.js, Express.js
 *   **Database**: MySQL
 *   **Real-time Features**: Service Workers for offline caching and push notifications.
+*   **Styling**: Centralized CSS with dynamic theming via CSS variables.
 
 ---
 

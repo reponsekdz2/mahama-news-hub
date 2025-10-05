@@ -142,13 +142,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
   return (
     <>
     {isDeleteModalOpen && <DeleteAccountModal onClose={() => setIsDeleteModalOpen(false)} onConfirm={logout} />}
-    <div className="my-6 md:my-8 fade-in max-w-4xl mx-auto">
+    <div className="my-6 md:my-8 animate-fadeIn max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white">{t('settings')}</h1>
         <button onClick={onNavigateBack} className="text-accent-500 dark:text-accent-400 hover:underline font-semibold text-sm">&larr; {t('backToNews')}</button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 md:p-8">
+      <div className="card p-6 md:p-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
             <div>
                 <h2 className="text-xl font-bold mb-4">Appearance</h2>
@@ -169,7 +169,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
                     </div>
                     <div>
                       <span className="text-gray-700 dark:text-gray-300">Language</span>
-                      <select value={language} onChange={(e) => setLanguage(e.target.value as any)} className="mt-2 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500">
+                      <select value={language} onChange={(e) => setLanguage(e.target.value as any)} className="form-select mt-2">
                         <option value="en">English</option>
                         <option value="fr">Français</option>
                         <option value="rw">Kinyarwanda</option>
@@ -222,24 +222,24 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigateBack }) => {
                {updateMessage && <p className={`text-sm p-3 rounded-md ${updateMessage.type === 'success' ? 'bg-green-100 dark:bg-green-900/50 text-green-700' : 'bg-red-100 dark:bg-red-900/50 text-red-700'}`}>{updateMessage.text}</p>}
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md" />
+                    <label className="form-label">Full Name</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} className="form-input" />
                  </div>
                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md" />
+                    <label className="form-label">Email Address</label>
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="form-input" />
                  </div>
                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Leave blank to keep current" className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md" />
+                    <label className="form-label">New Password</label>
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Leave blank to keep current" className="form-input" />
                  </div>
                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm New Password</label>
-                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md" />
+                    <label className="form-label">Confirm New Password</label>
+                    <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="form-input" />
                  </div>
                </div>
                <div className="flex justify-end">
-                <button type="submit" disabled={isUpdating} className="px-4 py-2 bg-accent-600 text-white rounded-md text-sm font-medium hover:bg-accent-700 disabled:opacity-50">{isUpdating ? 'Saving...' : 'Save Changes'}</button>
+                <button type="submit" disabled={isUpdating} className="btn btn-primary">{isUpdating ? 'Saving...' : 'Save Changes'}</button>
                </div>
            </form>
         </Section>

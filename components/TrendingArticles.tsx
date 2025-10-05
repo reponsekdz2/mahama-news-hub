@@ -25,38 +25,43 @@ const TrendingArticles: React.FC<TrendingArticlesProps> = ({ onArticleSelect }) 
         loadTrending();
     }, []);
 
-    if (isLoading || articles.length === 0) {
-        // Render a placeholder or nothing while loading
+    const renderSkeletons = () => (
+        <ul className="mt-4 space-y-4">
+            {[...Array(5)].map((_, i) => (
+                <li key={i} className="animate-pulse flex items-start">
+                    <div className="bg-gray-300 dark:bg-gray-700 h-6 w-6 rounded-sm flex-shrink-0"></div>
+                    <div className="ml-3 w-full">
+                        <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-5/6"></div>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/3 mt-2"></div>
+                    </div>
+                </li>
+            ))}
+        </ul>
+    );
+
+    if (isLoading) {
         return (
             <div>
                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-wider uppercase">{t('trendingArticles')}</h3>
-                 <ul className="mt-4 space-y-3">
-                    {[...Array(3)].map((_, i) => (
-                        <li key={i} className="animate-pulse flex items-start">
-                            <div className="bg-gray-300 dark:bg-gray-700 h-6 w-6 rounded-sm"></div>
-                            <div className="ml-2 w-full">
-                                <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-5/6"></div>
-                                <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/3 mt-2"></div>
-                            </div>
-                        </li>
-                    ))}
-                 </ul>
+                 {renderSkeletons()}
             </div>
         )
     }
+    
+    if (articles.length === 0) return null;
 
     return (
         <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-wider uppercase">{t('trendingArticles')}</h3>
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-4">
                 {articles.map((article, index) => (
-                    <li key={article.id} className="flex items-start">
-                        <span className="text-xl font-bold text-accent-500/50 dark:text-accent-400/50 w-8 flex-shrink-0">{index + 1}</span>
+                    <li key={article.id} className="flex items-start group">
+                        <span className="text-2xl font-bold text-gray-300 dark:text-gray-600 w-8 flex-shrink-0 mt-[-2px]">{index + 1}</span>
                         <div>
-                           <button onClick={() => onArticleSelect(article.id)} className="text-base text-left text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:underline">
+                           <button onClick={() => onArticleSelect(article.id)} className="text-base text-left font-semibold text-gray-700 dark:text-gray-300 group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">
                              {article.title}
                            </button>
-                           <p className="text-xs text-gray-400 dark:text-gray-500">{article.views.toLocaleString()} views</p>
+                           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{article.views.toLocaleString()} views</p>
                         </div>
                     </li>
                 ))}

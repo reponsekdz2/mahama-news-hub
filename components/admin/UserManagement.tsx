@@ -81,8 +81,8 @@ const UserManagement: React.FC = () => {
     };
 
     const getSortIndicator = (key: SortKey) => {
-        if (!sortConfig || sortConfig.key !== key) return null;
-        return sortConfig.direction === 'ascending' ? ' ▲' : ' ▼';
+        if (!sortConfig || sortConfig.key !== key) return '↕';
+        return sortConfig.direction === 'ascending' ? '▲' : '▼';
     };
 
 
@@ -106,11 +106,11 @@ const UserManagement: React.FC = () => {
         }
     };
     
-    const SortableHeader: React.FC<{ sortKey: SortKey, children: React.ReactNode, className?: string, isRightAligned?: boolean }> = ({ sortKey, children, className, isRightAligned }) => (
-        <th scope="col" className={`px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider ${isRightAligned ? 'text-right' : 'text-left'} ${className}`}>
-            <button onClick={() => requestSort(sortKey)} className="w-full text-inherit flex items-center gap-1">
+    const SortableHeader: React.FC<{ sortKey: SortKey, children: React.ReactNode }> = ({ sortKey, children }) => (
+        <th scope="col">
+            <button onClick={() => requestSort(sortKey)} className="w-full flex items-center justify-start gap-2 group">
                 {children}
-                <span className="text-accent-500">{getSortIndicator(sortKey)}</span>
+                <span className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200">{getSortIndicator(sortKey)}</span>
             </button>
         </th>
     );
@@ -135,44 +135,44 @@ const UserManagement: React.FC = () => {
                     placeholder="Filter by name or email..."
                     value={filterText}
                     onChange={e => setFilterText(e.target.value)}
-                    className="block w-full max-w-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-accent-500 focus:border-accent-500 sm:text-sm bg-white dark:bg-gray-700"
+                    className="form-input max-w-sm"
                 />
             </div>
 
-            <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
+            <div className="overflow-x-auto card">
+                <table className="admin-table">
+                    <thead>
                         <tr>
                             <SortableHeader sortKey="name">Name</SortableHeader>
                             <SortableHeader sortKey="email">Email</SortableHeader>
                             <SortableHeader sortKey="role">Role</SortableHeader>
                             <SortableHeader sortKey="subscription">Subscription</SortableHeader>
-                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                            <th scope="col" className="text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody>
                         {sortedAndFilteredUsers.map(user => (
                             <tr key={user.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{user.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{user.email}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                <td className="font-medium text-gray-900 dark:text-white">{user.name}</td>
+                                <td>{user.email}</td>
+                                <td>
                                     <select
                                         value={user.role}
                                         onChange={(e) => handleRoleChange(user.id, e.target.value as 'user' | 'admin')}
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-accent-500 focus:border-accent-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                        className="form-select p-2.5"
                                         disabled={user.id === adminUser?.id}
                                     >
                                         <option value="user">User</option>
                                         <option value="admin">Admin</option>
                                     </select>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${user.subscriptionStatus === 'premium' ? 'bg-green-100 text-green-800' : user.subscriptionStatus === 'trial' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                                <td>
+                                    <span className={`badge capitalize ${user.subscriptionStatus === 'premium' ? 'badge-published' : user.subscriptionStatus === 'trial' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'}`}>
                                       {user.subscriptionStatus || 'Free'}
                                     </span>
                                     {user.subscriptionEndDate && <p className="text-xs mt-1">Ends: {new Date(user.subscriptionEndDate).toLocaleDateString()}</p>}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                <td className="text-right font-medium space-x-2">
                                      <button 
                                         onClick={() => setEditingUser(user)}
                                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"

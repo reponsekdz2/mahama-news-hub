@@ -9,12 +9,10 @@ const urlsToCache = [
   '/index.css',
   '/index.tsx',
   // Key CDN assets - caching these can significantly speed up initial load on subsequent visits.
-  'https://cdn.tailwindcss.com',
-  'https://esm.sh/react@18.2.0',
-  'https://esm.sh/react-dom@18.2.0/client',
-  'https://esm.sh/react-quill@2.0.0',
-  'https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css',
-  'https://esm.sh/chart.js@4.4.2'
+  'https://aistudiocdn.com/react@^19.2.0',
+  'https://aistudiocdn.com/react-dom@^19.2.0/',
+  'https://aistudiocdn.com/react-quill@^2.0.0',
+  'https://aistudiocdn.com/chart.js@^4.5.0'
 ];
 
 // Installation event: fired when the service worker is first installed.
@@ -75,8 +73,13 @@ self.addEventListener('fetch', event => {
         return fetch(event.request).then(
           networkResponse => {
             // Check if we received a valid response.
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+            if (!networkResponse || networkResponse.status !== 200) {
               return networkResponse;
+            }
+
+            // We don't cache API calls
+            if(event.request.url.includes('/api/')) {
+                return networkResponse;
             }
 
             // Clone the response because it's a stream and can only be consumed once.

@@ -30,7 +30,6 @@ const ModerationQueue: React.FC = () => {
     const handleUpdateStatus = async (commentId: string, status: 'approved' | 'rejected') => {
         if (!user?.token) return;
         
-        // Optimistic update
         const originalComments = comments;
         setComments(prev => prev.filter(c => c.id !== commentId));
         
@@ -52,15 +51,16 @@ const ModerationQueue: React.FC = () => {
             {comments.length > 0 ? (
                 <div className="space-y-4">
                     {comments.map(comment => (
-                        <div key={comment.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-                            <div className="flex justify-between items-start">
+                        <div key={comment.id} className="card p-4 transition-all hover:shadow-lg">
+                            <div className="flex flex-col sm:flex-row justify-between items-start">
                                 <div>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">
                                         <strong>{comment.userName}</strong> on article: <em>{comment.articleTitle}</em>
+                                        <span className="ml-2 text-xs">({new Date(comment.createdAt).toLocaleString()})</span>
                                     </p>
-                                    <p className="mt-2 text-gray-800 dark:text-gray-200">{comment.content}</p>
+                                    <p className="mt-2 text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md">{comment.content}</p>
                                 </div>
-                                <div className="flex-shrink-0 flex items-center gap-2 ml-4">
+                                <div className="flex-shrink-0 flex items-center gap-2 mt-3 sm:mt-0 sm:ml-4">
                                     <button
                                         onClick={() => handleUpdateStatus(comment.id, 'approved')}
                                         className="px-3 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600"
@@ -79,7 +79,13 @@ const ModerationQueue: React.FC = () => {
                     ))}
                 </div>
             ) : (
-                <p className="text-center py-8 text-gray-500 dark:text-gray-400">The moderation queue is empty.</p>
+                <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">All caught up!</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">The moderation queue is empty.</p>
+                </div>
             )}
         </div>
     );

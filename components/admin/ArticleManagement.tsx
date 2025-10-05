@@ -19,7 +19,6 @@ const ArticleManagement: React.FC = () => {
         if (!user?.token) return;
         setIsLoading(true);
         try {
-            // Fetch all articles, regardless of topic, for management
             const allArticles = await fetchArticles('all', {dateRange: 'all', sortBy: 'newest'}, user.token);
             setArticles(allArticles);
         } catch (err) {
@@ -53,26 +52,21 @@ const ArticleManagement: React.FC = () => {
         setIsSubmitting(true);
         setError(null);
         try {
-            let submittedArticleId = articleId;
+            let submittedArticle;
             if (articleId) {
-                await updateArticle(articleId, formData, user.token);
+                submittedArticle = await updateArticle(articleId, formData, user.token);
             } else {
-                const newArticle = await createArticle(formData, user.token);
-                submittedArticleId = newArticle.id;
+                submittedArticle = await createArticle(formData, user.token);
             }
-
-            // After article is created/updated, handle the poll
+            
             const pollQuestion = formData.get('pollQuestion') as string;
-            const pollOptions = formData.getAll('pollOptions[]') as string[];
-
-            if (submittedArticleId && (pollQuestion || articleToEdit?.poll)) {
+            if (submittedArticle?.id && pollQuestion) {
                  await createOrUpdatePoll({
-                    articleId: submittedArticleId,
+                    articleId: submittedArticle.id,
                     question: pollQuestion,
-                    options: pollOptions,
+                    options: formData.getAll('pollOptions[]') as string[],
                 }, user.token);
             }
-
 
             setIsFormOpen(false);
             setArticleToEdit(null);
@@ -99,46 +93,46 @@ const ArticleManagement: React.FC = () => {
                 <>
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold">Manage Articles ({articles.length})</h2>
-                        <button onClick={() => handleOpenForm()} className="px-4 py-2 bg-accent-600 text-white rounded-md text-sm font-medium hover:bg-accent-700">
+                        <button onClick={() => handleOpenForm()} className="btn btn-primary">
                             Create New Article
                         </button>
                     </div>
                     {error && <p className="text-red-500 mb-4">{error}</p>}
-                    <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
-                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead className="bg-gray-50 dark:bg-gray-700">
+                    <div className="overflow-x-auto card">
+                         <table className="admin-table">
+                            <thead>
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Image</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Title</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Category</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Premium</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium uppercase">Actions</th>
+                                    <th>Image</th>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Premium</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
                             </thead>
-                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                             <tbody>
                                 {articles.map(article => (
                                 <tr key={article.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                    <td>
                                         {article.imageUrl ? (
                                             <img src={article.imageUrl} alt={article.title} className="w-16 h-10 object-cover rounded shadow" />
                                         ) : (
                                             <div className="w-16 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center text-xs text-gray-500">No Image</div>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium max-w-xs truncate">{article.title}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">{article.category}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${article.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                    <td className="font-medium text-gray-900 dark:text-white max-w-xs truncate">{article.title}</td>
+                                    <td>{article.category}</td>
+                                    <td>
+                                        <span className={`badge ${article.status === 'published' ? 'badge-published' : 'badge-draft'}`}>
                                             {article.status}
                                         </span>
                                     </td>
-                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                     <td>
                                         {article.isPremium ? 'Yes' : 'No'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                        <button onClick={() => handleOpenForm(article)} className="text-accent-600 hover:text-accent-900">Edit</button>
-                                        <button onClick={() => handleDelete(article.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                                    <td className="text-right font-medium space-x-4">
+                                        <button onClick={() => handleOpenForm(article)} className="text-accent-600 hover:text-accent-900 dark:text-accent-400 dark:hover:text-accent-200">Edit</button>
+                                        <button onClick={() => handleDelete(article.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Delete</button>
                                     </td>
                                 </tr>
                                 ))}

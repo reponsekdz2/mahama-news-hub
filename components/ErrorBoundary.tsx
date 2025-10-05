@@ -10,16 +10,11 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // Fix: Refactored to use a constructor for state initialization and method binding.
-  // This improves compatibility and can prevent parsing errors that cause issues with `this.props` and `this.state`.
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: undefined,
-    };
-    this.handleReport = this.handleReport.bind(this);
-  }
+  // Fix: Replaced constructor with class field for state initialization to resolve 'this.state' access errors.
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: undefined,
+  };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -30,7 +25,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     // Here you would typically log the error to a service like Sentry
   }
 
-  private handleReport() {
+  // Fix: Converted to an arrow function to automatically bind `this` and resolve access errors.
+  private handleReport = () => {
     const subject = "Mahama News TV - Application Error Report";
     const body = `
       Hello Support Team,

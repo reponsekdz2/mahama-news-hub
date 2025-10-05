@@ -22,6 +22,7 @@ import OfflineBanner from './components/OfflineBanner.tsx';
 import SubscriptionPlanModal from './components/SubscriptionPlanModal.tsx';
 import { getSiteSettings } from './services/settingsService.ts';
 import MaintenancePage from './components/MaintenancePage.tsx';
+import Aside from './components/Aside.tsx';
 
 
 // This export is needed by other files
@@ -107,11 +108,22 @@ const App: React.FC = () => {
       // Fetch the full article details to ensure content is not truncated
       const fullArticle = await getArticleById(article.id, user?.token);
       setSelectedArticle(fullArticle);
-      window.scrollTo(0, 0);
+      document.body.style.overflow = 'hidden';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load article details.');
     }
   };
+  
+  const handleReadArticleById = async (articleId: string) => {
+    try {
+        const fullArticle = await getArticleById(articleId, user?.token);
+        setSelectedArticle(fullArticle);
+        document.body.style.overflow = 'hidden';
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load article details.');
+    }
+  };
+
 
   const handleSurpriseMe = async () => {
       setView('surprise');
@@ -121,6 +133,7 @@ const App: React.FC = () => {
           const article = await fetchRandomArticle(user?.token);
           if (article) {
               setSelectedArticle(article);
+              document.body.style.overflow = 'hidden';
           } else {
               setError("Couldn't find an article to surprise you with!");
           }
@@ -148,6 +161,11 @@ const App: React.FC = () => {
       window.scrollTo(0, 0);
   }
 
+  const handleCloseArticle = () => {
+    setSelectedArticle(null);
+    document.body.style.overflow = 'auto';
+  };
+
   const mainArticle = articles.length > 0 ? articles[0] : null;
   const otherArticles = articles.length > 1 ? articles.slice(1) : [];
 
@@ -174,7 +192,7 @@ const App: React.FC = () => {
       <>
         {view === 'search' && (
           <div className="mb-4">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+            <h2 className="text-2xl font-bold">
               Search results for: "{searchQuery}"
             </h2>
             <AdvancedSearchBar filters={searchFilters} onFiltersChange={setSearchFilters} />
@@ -184,7 +202,7 @@ const App: React.FC = () => {
         {isLoading ? (
           <>
             <MainArticleSkeleton />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+            <div className="articles-grid">
               {[...Array(6)].map((_, i) => <ArticleCardSkeleton key={i} />)}
             </div>
           </>
@@ -194,12 +212,12 @@ const App: React.FC = () => {
               <MainArticle article={mainArticle} onReadMore={handleReadArticle} />
             ) : (
                <div className="text-center py-12">
-                  <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">No articles found.</h2>
-                  <p className="text-gray-500 dark:text-gray-400 mt-2">Try adjusting your search or filters.</p>
+                  <h2 className="text-xl font-semibold">No articles found.</h2>
+                  <p className="mt-2">Try adjusting your search or filters.</p>
               </div>
             )}
             {otherArticles.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+              <div className="articles-grid">
                 {otherArticles.map(article => (
                   <ArticleCard key={article.id} article={article} onReadMore={handleReadArticle} />
                 ))}
@@ -212,7 +230,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen font-sans">
+    <div className="min-h-screen">
       {!isOnline && <OfflineBanner />}
       <Header
         onTopicSelect={topic => {
@@ -226,15 +244,28 @@ const App: React.FC = () => {
         onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
         currentTopic={currentTopic}
       />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {isPersistenceLoading ? <Spinner /> : renderContent()}
+      <main className="container py-6">
+        <div className="app-grid">
+            <div className="main-content">
+                 {isPersistenceLoading ? <Spinner /> : renderContent()}
+            </div>
+            <aside className="hidden lg:block aside-column">
+                <div className="sticky top-24 space-y-8">
+                    <Aside 
+                        onArticleSelect={handleReadArticleById}
+                        onSubscribeClick={() => setIsSubscriptionModalOpen(true)}
+                        category={currentTopic}
+                    />
+                </div>
+            </aside>
+        </div>
       </main>
       <Footer />
       <BackToTopButton />
       {selectedArticle && (
         <ArticleModal
           article={selectedArticle}
-          onClose={() => setSelectedArticle(null)}
+          onClose={handleCloseArticle}
           onArticleNavigate={handleReadArticle}
         />
       )}

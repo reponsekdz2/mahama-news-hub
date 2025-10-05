@@ -1,4 +1,5 @@
 
+
 const API_URL = '/api/search';
 
 const handleResponse = async (response: Response) => {

@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import ArticleManagement from './admin/ArticleManagement.tsx';
 import UserManagement from './admin/UserManagement.tsx';
 import Dashboard from './admin/Dashboard.tsx';
-import AdManagement from './admin/AdManagement.tsx';
+import MarketingManagement from './admin/AdManagement.tsx';
 import ModerationQueue from './admin/ModerationQueue.tsx';
 import SiteSettingsManagement from './admin/SiteSettingsManagement.tsx';
+import TagManagement from './admin/TagManagement.tsx';
 
-type AdminView = 'dashboard' | 'articles' | 'users' | 'ads' | 'moderation' | 'settings';
+
+type AdminView = 'dashboard' | 'articles' | 'users' | 'marketing' | 'moderation' | 'tags' | 'settings';
 
 interface AdminPanelProps {
     onNavigateBack: () => void;
@@ -21,10 +23,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onNavigateBack }) => {
                 return <ArticleManagement />;
             case 'users':
                 return <UserManagement />;
-            case 'ads':
-                return <AdManagement />;
+            case 'marketing':
+                return <MarketingManagement />;
             case 'moderation':
                 return <ModerationQueue />;
+            case 'tags':
+                return <TagManagement />;
             case 'settings':
                 return <SiteSettingsManagement />;
             case 'dashboard':
@@ -36,7 +40,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onNavigateBack }) => {
     const NavButton: React.FC<{ currentView: AdminView, targetView: AdminView, label: string }> = ({ currentView, targetView, label }) => (
          <button
             onClick={() => setView(targetView)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex-shrink-0 ${
                 currentView === targetView 
                 ? 'bg-accent-600 text-white' 
                 : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -58,13 +62,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onNavigateBack }) => {
                 </button>
             </div>
             
-            <nav className="flex flex-wrap gap-2 sm:space-x-4 mb-6">
-                <NavButton currentView={view} targetView="dashboard" label="Dashboard" />
-                <NavButton currentView={view} targetView="articles" label="Articles" />
-                <NavButton currentView={view} targetView="users" label="Users" />
-                <NavButton currentView={view} targetView="ads" label="Advertisements" />
-                <NavButton currentView={view} targetView="moderation" label="Moderation" />
-                <NavButton currentView={view} targetView="settings" label="Site Settings" />
+            <nav className="mb-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="overflow-x-auto admin-nav-scroll">
+                    <div className="flex space-x-4 pb-2">
+                        <NavButton currentView={view} targetView="dashboard" label="Dashboard" />
+                        <NavButton currentView={view} targetView="articles" label="Articles" />
+                        <NavButton currentView={view} targetView="users" label="Users" />
+                        <NavButton currentView={view} targetView="marketing" label="Marketing" />
+                        <NavButton currentView={view} targetView="moderation" label="Moderation" />
+                        <NavButton currentView={view} targetView="tags" label="Tags" />
+                        <NavButton currentView={view} targetView="settings" label="Site Settings" />
+                    </div>
+                </div>
             </nav>
 
             <div className="mt-4">

@@ -4,6 +4,7 @@ import { Article } from '../../types.ts';
 import { useLanguage, CATEGORIES } from '../../contexts/LanguageContext.tsx';
 import { createOrUpdatePoll } from '../../services/pollService.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
+import { fetchTags } from '../../services/tagService.ts';
 
 interface ArticleFormProps {
   articleToEdit?: Partial<Article> | null;
@@ -11,6 +12,56 @@ interface ArticleFormProps {
   onCancel: () => void;
   isLoading: boolean;
 }
+
+const FileUploader: React.FC<{
+    label: string;
+    file: File | null;
+    preview: string | null;
+    accept: string;
+    onFileChange: (file: File | null) => void;
+    onPreviewChange: (preview: string | null) => void;
+}> = ({ label, file, preview, accept, onFileChange, onPreviewChange }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const selectedFile = e.target.files[0];
+            onFileChange(selectedFile);
+            onPreviewChange(URL.createObjectURL(selectedFile));
+        }
+    };
+    
+    const removeFile = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onFileChange(null);
+        onPreviewChange(null);
+        if(inputRef.current) inputRef.current.value = '';
+    };
+
+    return (
+        <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{label}</label>
+            <div className="file-uploader" onClick={() => inputRef.current?.click()}>
+                <input type="file" accept={accept} ref={inputRef} onChange={handleFileChange} className="hidden" />
+                {preview ? (
+                    <div className="file-uploader-preview">
+                        {accept.startsWith('image') ? <img src={preview} alt="Preview" /> : <video src={preview} />}
+                        <button type="button" onClick={removeFile} className="file-uploader-remove-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                ) : (
+                    <div className="text-gray-500 dark:text-gray-400">
+                        <svg className="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        <p className="mt-2 text-sm">Click to upload or drag and drop</p>
+                        <p className="text-xs">{accept.startsWith('image') ? 'PNG, JPG, GIF' : 'MP4, MOV'}</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 
 const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, onCancel, isLoading }) => {
   const { t } = useLanguage();
@@ -29,12 +80,16 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
   
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+
   // Poll State
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
 
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    fetchTags().then(tags => setAllTags(tags.map(t => t.name)));
+  }, []);
 
   useEffect(() => {
     if (articleToEdit) {
@@ -69,21 +124,30 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
         setPollOptions(['', '']);
     }
   }, [articleToEdit]);
+  
+  const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTags(value);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImage(file);
-      setImagePreview(URL.createObjectURL(file));
+    const currentTags = value.split(',').map(t => t.trim().toLowerCase());
+    const lastTagFragment = currentTags[currentTags.length - 1];
+
+    if (lastTagFragment) {
+        const suggestions = allTags.filter(t =>
+            t.toLowerCase().startsWith(lastTagFragment) &&
+            !currentTags.slice(0, -1).includes(t.toLowerCase())
+        );
+        setTagSuggestions(suggestions);
+    } else {
+        setTagSuggestions([]);
     }
   };
 
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setVideo(file);
-      setVideoPreview(URL.createObjectURL(file));
-    }
+  const addTagSuggestion = (suggestion: string) => {
+    const currentTags = tags.split(',').map(t => t.trim());
+    currentTags[currentTags.length - 1] = suggestion;
+    setTags(currentTags.join(', ') + ', ');
+    setTagSuggestions([]);
   };
 
   const handlePollOptionChange = (index: number, value: string) => {
@@ -200,7 +264,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
             <label htmlFor="isPremium" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">This is a premium article</label>
         </div>
 
-      <div>
+      <div className="relative">
         <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Tags (comma-separated)
         </label>
@@ -208,9 +272,21 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
           id="tags"
           type="text"
           value={tags}
-          onChange={(e) => setTags(e.target.value)}
+          onChange={handleTagsChange}
+          autoComplete="off"
           className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-accent-500 focus:border-accent-500"
         />
+         {tagSuggestions.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg">
+                <ul className="max-h-40 overflow-auto">
+                    {tagSuggestions.map(tag => (
+                        <li key={tag} onMouseDown={() => addTagSuggestion(tag)} className="px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
+                            {tag}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        )}
       </div>
 
       <div>
@@ -221,38 +297,22 @@ const ArticleForm: React.FC<ArticleFormProps> = ({ articleToEdit, onFormSubmit, 
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Cover Image
-            </label>
-            <div className="mt-2 flex items-center space-x-4">
-              {imagePreview && <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-md" />}
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                {imagePreview ? 'Change Image' : 'Upload Image'}
-              </button>
-              <input type="file" accept="image/*" ref={imageInputRef} onChange={handleImageChange} className="hidden" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Cover Video (Optional)
-            </label>
-             <div className="mt-1 flex items-center space-x-4">
-              {videoPreview && <video src={videoPreview} className="w-20 h-20 object-cover rounded-md" />}
-              <button
-                type="button"
-                onClick={() => videoInputRef.current?.click()}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                {videoPreview ? 'Change Video' : 'Upload Video'}
-              </button>
-              <input type="file" accept="video/*" ref={videoInputRef} onChange={handleVideoChange} className="hidden" />
-            </div>
-          </div>
+          <FileUploader 
+            label="Cover Image"
+            file={image}
+            preview={imagePreview}
+            accept="image/*"
+            onFileChange={setImage}
+            onPreviewChange={setImagePreview}
+          />
+          <FileUploader 
+            label="Cover Video (Optional)"
+            file={video}
+            preview={videoPreview}
+            accept="video/*"
+            onFileChange={setVideo}
+            onPreviewChange={setVideoPreview}
+          />
       </div>
       
        {/* SEO Section */}

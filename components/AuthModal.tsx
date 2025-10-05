@@ -88,19 +88,29 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    // In a real application, this would trigger the Google OAuth flow.
-    // For this demo, we'll simulate a successful login with mock data.
-    console.log("Simulating Google Sign-In...");
-    const mockUser = {
-        id: 'mock-google-user-123',
-        name: 'Google User',
-        email: 'google.user@example.com',
-        role: 'user' as const,
-        token: 'mock-google-jwt-token'
-    };
-    login(mockUser);
-    onClose();
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+        // In a real OAuth flow, you'd get this info from the Google SDK
+        const mockGoogleData = {
+            email: `user${Date.now()}@gmail.com`,
+            name: 'Google User',
+        };
+
+        const response = await fetch('/api/auth/google-signin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mockGoogleData)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Google Sign-In failed');
+        handleApiResponse(data);
+    } catch (err) {
+        setError(err instanceof Error ? err.message : 'Google Sign-In failed');
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const TabButton: React.FC<{tab: ActiveTab, label: string}> = ({ tab, label }) => (

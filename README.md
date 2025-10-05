@@ -2,8 +2,7 @@
 
 Mahama News TV is a feature-rich, personalized news application designed for a modern, interactive reading experience. It is built with a powerful backend and a responsive frontend, ready for deployment.
 
-**[Launch the Application on AI Studio]( https://ai.studio/apps/drive/1tCPFs3TxxWgLfyObgS8aiuSjX_cNI0GE
-)**  *(Note: Replace `YOUR_APP_ID` with the actual link after deployment)*
+**[Launch the Application on AI Studio](https://aistudio.google.com/app/YOUR_APP_ID)**  *(Note: Replace `YOUR_APP_ID` with the actual link after deployment)*
 
 ---
 
@@ -33,10 +32,13 @@ This application is packed with advanced features for users, administrators, and
 
 ### For Administrators (Admin Panel)
 
-A comprehensive, secure admin panel provides full control over the platform. The admin account can be accessed with email `` and password ``.
+A comprehensive, secure admin panel provides full control over the platform. 
+
+**Note:** To access the admin panel, you must first assign the 'admin' role to a registered user. After creating an account, you can update the user's role directly in the database with the following SQL command:
+`UPDATE users SET role = 'admin' WHERE email = 'your-admin-email@example.com';`
 
 *   **Dashboard**: Get a high-level overview of site analytics, including user activity, engagement trends, top articles, and top categories.
-*   **Article Management**: A full CRUD (Create, Read, Update, Delete) interface for managing articles. The rich text editor allows for complex article creation.
+*   **Article Management**: A full CRUD (Create, Read, Update, Delete) interface for managing articles. The rich text editor allows for complex article creation, **complete with image and video uploads**.
 *   **User Management**: View all users, manage their roles (User/Admin), and manually adjust their subscription status and duration.
 *   **Ad Campaign Management**: Create and manage advertising campaigns, setting budgets, timelines, and targeting specific content categories.
 *   **Advertisement Management**: Create, upload, and manage individual image/video ads and assign them to campaigns.

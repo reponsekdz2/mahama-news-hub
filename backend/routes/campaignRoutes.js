@@ -5,7 +5,8 @@ const {
     createCampaign,
     updateCampaign,
     deleteCampaign,
-    sendNewsletterCampaign
+    sendNewsletterCampaign,
+    getNewsletterCampaigns
 } = require('../controllers/campaignController');
 const { adminProtect } = require('../middleware/authMiddleware');
 
@@ -13,6 +14,8 @@ const { adminProtect } = require('../middleware/authMiddleware');
 router.use(adminProtect);
 
 router.post('/send-newsletter', sendNewsletterCampaign);
+router.get('/newsletter-history', getNewsletterCampaigns);
+
 
 router.route('/')
     .get(getCampaigns)

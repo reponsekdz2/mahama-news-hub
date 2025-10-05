@@ -85,23 +85,35 @@ const Header: React.FC<HeaderProps> = ({ logoUrl, selectedTopic, onTopicChange, 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t } = useLanguage();
   const { user, isLoggedIn, logout } = useAuth();
-  const menuRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const baseNavCategories = CATEGORIES;
   const loggedInNavCategories = ['myLibrary', 'readingHistory'];
   const allNavCategories = isLoggedIn ? [...baseNavCategories, ...loggedInNavCategories] : baseNavCategories;
 
+  // Close on Escape key
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
         setIsMobileMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = 'unset';
+    }
+    // Cleanup on component unmount
+    return () => {
+        document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
   
   const NavLink: React.FC<{topicKey: string}> = ({ topicKey }) => (
     <button
@@ -116,90 +128,121 @@ const Header: React.FC<HeaderProps> = ({ logoUrl, selectedTopic, onTopicChange, 
     </button>
   );
 
-  const MobileMenuItem: React.FC<{onClick: () => void, children: React.ReactNode}> = ({ onClick, children }) => (
-    <button onClick={onClick} className="block w-full text-left px-4 py-2 text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+  const MobileMenuItem: React.FC<{onClick: () => void, children: React.ReactNode, className?: string}> = ({ onClick, children, className }) => (
+    <button onClick={onClick} className={`block w-full text-left px-4 py-3 text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-md ${className}`}>
         {children}
     </button>
   );
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-30">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-                {/* Logo */}
-                <Logo onClick={() => onTopicChange('Top Stories')} logoUrl={logoUrl} />
+    <>
+      <header className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-30">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                  {/* Logo */}
+                  <Logo onClick={() => onTopicChange('Top Stories')} logoUrl={logoUrl} />
 
-                {/* Desktop Navigation */}
-                <div className="hidden lg:flex items-center space-x-1">
-                    {baseNavCategories.map(cat => <NavLink key={cat} topicKey={cat} />)}
-                </div>
-                
-                {/* Right side controls */}
-                <div className="flex items-center space-x-2 sm:space-x-4">
-                     <button onClick={onSurpriseMe} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label={t('surpriseMe')}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L11 12l2.293 2.293a1 1 0 010 1.414L11 18m0-6l2.293-2.293a1 1 0 011.414 0L17 12m-6 0l2.293 2.293a1 1 0 010 1.414L13 18" /></svg>
-                    </button>
-                    <button onClick={onSearch} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label={t('searchAriaLabel')}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    </button>
-                    
-                    {/* Desktop Controls */}
-                    <div className="hidden lg:flex items-center space-x-2">
-                         {isLoggedIn && <NotificationsDropdown onNavigateToArticle={() => { /* Implement navigation */ }} />}
-                        {isLoggedIn ? (
-                            <UserMenu onTopicChange={onTopicChange} onLogout={logout} onNavigate={onNavigate}/>
-                        ) : (
-                            <button
-                              onClick={onOpenLogin}
-                              className="px-4 py-2 text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 rounded-md"
-                            >
-                              {t('login')}
-                            </button>
-                        )}
-                    </div>
-                    
-                    {/* Mobile Menu Button */}
-                    <div ref={menuRef} className="relative lg:hidden">
-                         {isLoggedIn && <NotificationsDropdown onNavigateToArticle={() => { /* Implement navigation */ }} />}
-                        <button
-                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            aria-label="Open menu"
-                        >
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
-                        </button>
-                        
-                        {isMobileMenuOpen && (
-                            <div className="origin-top-right absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black dark:ring-gray-700 ring-opacity-5 z-40">
-                                <div className="py-2">
-                                    <div className="px-4 py-2 border-b dark:border-gray-700">
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Categories</p>
-                                    </div>
-                                    {allNavCategories.map(categoryKey => (
-                                        <MobileMenuItem key={categoryKey} onClick={() => { onTopicChange(categoryKey); setIsMobileMenuOpen(false); }}>
-                                            {t(categoryKey as any)}
-                                        </MobileMenuItem>
-                                    ))}
-                                    <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                                    {isLoggedIn ? (
-                                        <>
-                                            {user?.role === 'admin' && (
-                                                <MobileMenuItem onClick={() => { onNavigate('admin'); setIsMobileMenuOpen(false); }}>Admin Panel</MobileMenuItem>
-                                            )}
-                                            <MobileMenuItem onClick={() => { onNavigate('settings'); setIsMobileMenuOpen(false); }}>{t('settings')}</MobileMenuItem>
-                                            <MobileMenuItem onClick={logout}>{t('logout')}</MobileMenuItem>
-                                        </>
-                                    ) : (
-                                        <MobileMenuItem onClick={() => { onOpenLogin(); setIsMobileMenuOpen(false); }}>{t('login')}</MobileMenuItem>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+                  {/* Desktop Navigation & Controls */}
+                  <div className="hidden lg:flex items-center space-x-1">
+                      {baseNavCategories.map(cat => <NavLink key={cat} topicKey={cat} />)}
+                      <div className="w-4 border-l dark:border-gray-600 h-6 mx-2"></div>
+                      <button onClick={onSurpriseMe} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label={t('surpriseMe')}>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.293 2.293a1 1 0 010 1.414L11 12l2.293 2.293a1 1 0 010 1.414L11 18m0-6l2.293-2.293a1 1 0 011.414 0L17 12m-6 0l2.293 2.293a1 1 0 010 1.414L13 18" /></svg>
+                      </button>
+                      <button onClick={onSearch} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label={t('searchAriaLabel')}>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                      </button>
+                      {isLoggedIn && <NotificationsDropdown onNavigateToArticle={() => { /* Implement navigation */ }} />}
+                      {isLoggedIn ? (
+                          <UserMenu onTopicChange={onTopicChange} onLogout={logout} onNavigate={onNavigate}/>
+                      ) : (
+                          <button
+                            onClick={onOpenLogin}
+                            className="px-4 py-2 text-sm font-medium text-white bg-accent-600 hover:bg-accent-700 rounded-md"
+                          >
+                            {t('login')}
+                          </button>
+                      )}
+                  </div>
+                  
+                  {/* Mobile Menu Button */}
+                  <div className="lg:hidden">
+                      <button
+                          onClick={() => setIsMobileMenuOpen(true)}
+                          className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          aria-label="Open menu"
+                      >
+                          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                      </button>
+                  </div>
+              </div>
+          </div>
+      </header>
+
+      {/* --- Mobile Menu Panel --- */}
+      {/* Backdrop */}
+      <div
+          className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300 ${
+            isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-hidden="true"
+      />
+      {/* Panel */}
+      <div
+          ref={panelRef}
+          className={`fixed top-0 right-0 h-full w-80 max-w-[90vw] bg-white dark:bg-gray-800 shadow-xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
+            isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mobile-menu-title"
+      >
+          <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                  <h2 id="mobile-menu-title" className="font-bold text-lg text-accent-600 dark:text-accent-400">Menu</h2>
+                  <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close menu">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+              </div>
+              {/* Content */}
+              <div className="flex-grow overflow-y-auto p-4 space-y-2">
+                  <MobileMenuItem onClick={() => { onSearch(); setIsMobileMenuOpen(false); }}>{t('searchAriaLabel')}</MobileMenuItem>
+                  <MobileMenuItem onClick={() => { onSurpriseMe(); setIsMobileMenuOpen(false); }}>{t('surpriseMe')}</MobileMenuItem>
+                  
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+
+                  <p className="px-4 pt-2 text-sm font-semibold text-gray-500 dark:text-gray-400">Categories</p>
+                  {allNavCategories.map(categoryKey => (
+                      <MobileMenuItem key={categoryKey} onClick={() => { onTopicChange(categoryKey); setIsMobileMenuOpen(false); }}>
+                          {t(categoryKey as any)}
+                      </MobileMenuItem>
+                  ))}
+                  
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+
+                  {isLoggedIn ? (
+                      <>
+                          <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
+                            <span className="text-base text-gray-700 dark:text-gray-300">{t('notifications')}</span>
+                            <NotificationsDropdown onNavigateToArticle={() => { /* Implement navigation */ }} />
+                          </div>
+                          {user?.role === 'admin' && (
+                              <MobileMenuItem onClick={() => { onNavigate('admin'); setIsMobileMenuOpen(false); }}>Admin Panel</MobileMenuItem>
+                          )}
+                          <MobileMenuItem onClick={() => { onNavigate('settings'); setIsMobileMenuOpen(false); }}>{t('settings')}</MobileMenuItem>
+                          <MobileMenuItem onClick={logout}>{t('logout')}</MobileMenuItem>
+                      </>
+                  ) : (
+                      <MobileMenuItem onClick={() => { onOpenLogin(); setIsMobileMenuOpen(false); }} className="bg-accent-600 text-white font-semibold hover:bg-accent-700 hover:text-white dark:hover:bg-accent-700">
+                          {t('login')}
+                      </MobileMenuItem>
+                  )}
+              </div>
+          </div>
+      </div>
+    </>
   );
 };
 

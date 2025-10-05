@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -69,28 +70,6 @@ const loginUser = async (req, res, next) => {
     if (!email || !password) {
         return res.status(400).json({ message: 'Please provide email and password' });
     }
-    
-    // Hardcoded admin check
-    if (email === 'reponsekdz0@gmail.com' && password === '2025') {
-        try {
-            const [admins] = await db.query('SELECT id, name, email, role FROM users WHERE email = ? AND role = "admin"', [email]);
-            if (admins.length > 0) {
-                const adminUser = admins[0];
-                 await db.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [adminUser.id]);
-                const token = generateToken(adminUser.id);
-                return res.json({
-                    user: { ...adminUser, subscriptionStatus: 'premium', subscriptionEndDate: null },
-                    token
-                });
-            } else {
-                // If the admin account doesn't exist, we can't log them in.
-                return res.status(400).json({ message: 'Admin account not found in database.' });
-            }
-        } catch (error) {
-            return next(error);
-        }
-    }
-
 
     try {
         const [users] = await db.query('SELECT id, name, email, role, password FROM users WHERE email = ?', [email]);
@@ -141,6 +120,65 @@ const loginUser = async (req, res, next) => {
     }
 };
 
+
+// @desc    Authenticate or register user via Google
+// @route   POST /api/auth/google-signin
+// @access  Public
+const googleSignIn = async (req, res, next) => {
+    const { email, name } = req.body;
+
+    if (!email || !name) {
+        return res.status(400).json({ message: 'Email and name from Google are required.' });
+    }
+
+    try {
+        let userId;
+        const [existingUsers] = await db.query('SELECT id, name, email, role FROM users WHERE email = ?', [email]);
+        
+        if (existingUsers.length > 0) {
+            // User exists, log them in
+            userId = existingUsers[0].id;
+            await db.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [userId]);
+        } else {
+            // New user, register them
+            // We'll create a random, un-usable password
+            const randomPassword = crypto.randomBytes(20).toString('hex');
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(randomPassword, salt);
+            
+            const [result] = await db.query('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [name, email, hashedPassword]);
+            userId = result.insertId;
+
+            // Grant trial subscription for new Google users
+            const trialEndDate = new Date();
+            trialEndDate.setMonth(trialEndDate.getMonth() + 1);
+            await db.query('INSERT INTO subscriptions (user_id, status, start_date, end_date) VALUES (?, ?, NOW(), ?)', [userId, 'trial', trialEndDate]);
+        }
+        
+        // Fetch user details and subscription status
+        const [users] = await db.query('SELECT id, name, email, role FROM users WHERE id = ?', [userId]);
+        const user = users[0];
+
+        const [subs] = await db.query('SELECT status, end_date FROM subscriptions WHERE user_id = ?', [userId]);
+        let subscriptionStatus = 'free';
+        let subscriptionEndDate = null;
+        if (subs.length > 0 && subs[0].end_date && new Date(subs[0].end_date) > new Date()) {
+            subscriptionStatus = subs[0].status;
+            subscriptionEndDate = subs[0].end_date;
+        }
+
+        const token = generateToken(userId);
+        res.status(200).json({
+            user: { ...user, subscriptionStatus, subscriptionEndDate },
+            token
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 // Generate JWT
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -151,4 +189,5 @@ const generateToken = (id) => {
 module.exports = {
     registerUser,
     loginUser,
+    googleSignIn,
 };

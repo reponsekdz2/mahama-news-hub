@@ -13,21 +13,29 @@ const getCollections = async (req, res, next) => {
             ORDER BY c.name ASC
         `, [req.user.id]);
         
-        for(let collection of collections) {
+        const collectionIds = collections.map(c => c.id);
+        
+        if (collectionIds.length > 0) {
             const [articles] = await db.query(`
                  SELECT 
-                    a.id, a.title, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl,
-                    u.name as authorName,
+                    ca.collection_id,
+                    a.id, a.title, a.summary, a.content, a.category, a.image_url as imageUrl, a.video_url as videoUrl, a.is_premium as isPremium,
+                    u.name as authorName, a.createdAt,
                     (SELECT COUNT(*) FROM article_views WHERE article_id = a.id) as viewCount,
                     (SELECT COUNT(*) FROM article_likes WHERE article_id = a.id) as likeCount,
                     (SELECT COUNT(*) > 0 FROM article_likes WHERE article_id = a.id AND user_id = ?) as isLiked
                 FROM collection_articles ca
                 JOIN articles a ON ca.article_id = a.id
                 JOIN users u ON a.author_id = u.id
-                WHERE ca.collection_id = ?
-            `, [req.user.id, collection.id]);
-            collection.articles = articles;
+                WHERE ca.collection_id IN (?)
+            `, [req.user.id, collectionIds]);
+
+            // Map articles back to their collections
+            collections.forEach(collection => {
+                collection.articles = articles.filter(article => article.collection_id === collection.id);
+            });
         }
+
 
         res.json(collections);
     } catch (error) {

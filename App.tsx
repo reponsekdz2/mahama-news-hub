@@ -23,7 +23,7 @@ import AdvancedSearchBar from './components/AdvancedSearchBar.tsx';
 import OfflineBanner from './components/OfflineBanner.tsx';
 import { MainArticleSkeleton, ArticleCardSkeleton } from './components/Skeletons.tsx';
 import SubscriptionPlanModal from './components/SubscriptionPlanModal.tsx';
-import Aside from './Aside.tsx';
+import Aside from './components/Aside.tsx';
 import TrendingArticles from './components/TrendingArticles.tsx';
 import MaintenancePage from './components/MaintenancePage.tsx';
 

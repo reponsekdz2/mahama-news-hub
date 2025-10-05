@@ -69,25 +69,47 @@ const sendNewsletterCampaign = async (req, res, next) => {
         return res.status(400).json({ message: 'Subject and content are required.' });
     }
 
+    const connection = await db.getConnection();
     try {
-        const [subscribers] = await db.query('SELECT email FROM newsletter_subscriptions');
+        await connection.beginTransaction();
+
+        const [subscribers] = await connection.query('SELECT email FROM newsletter_subscriptions');
         
         if (subscribers.length === 0) {
             return res.status(404).json({ message: 'No subscribers to send to.' });
         }
+        
+        // Save the campaign to the database
+        await connection.query(
+            'INSERT INTO newsletter_campaigns (subject, content, sent_by_admin_id) VALUES (?, ?, ?)',
+            [subject, content, req.user.id]
+        );
 
-        const subscriberEmails = subscribers.map(s => s.email);
-
-        // In a real application, you would integrate an email service.
-        // For this mock, we'll just log it and return success.
-        console.log(`Simulating sending newsletter campaign:`);
-        console.log(`Subject: ${subject}`);
-        console.log(`To: ${subscriberEmails.join(', ')}`);
+        // In a real application, you would integrate an email service. Here we simulate it.
+        console.log(`SIMULATING NEWSLETTER SEND: Subject "${subject}" to ${subscribers.length} subscribers.`);
         
         logAdminAction(req.user.id, 'create', 'newsletter_campaign', null, { subject, recipients: subscribers.length });
         
-        res.json({ message: `Newsletter campaign sent to ${subscribers.length} subscribers.` });
+        await connection.commit();
+        res.json({ message: `Newsletter campaign saved and simulated for ${subscribers.length} subscribers.` });
 
+    } catch (error) {
+        await connection.rollback();
+        next(error);
+    } finally {
+        connection.release();
+    }
+};
+
+const getNewsletterCampaigns = async (req, res, next) => {
+    try {
+        const [campaigns] = await db.query(`
+            SELECT nc.id, nc.subject, nc.sent_at as sentAt, u.name as adminName
+            FROM newsletter_campaigns nc
+            JOIN users u ON nc.sent_by_admin_id = u.id
+            ORDER BY nc.sent_at DESC
+        `);
+        res.json(campaigns);
     } catch (error) {
         next(error);
     }
@@ -100,4 +122,5 @@ module.exports = {
     updateCampaign,
     deleteCampaign,
     sendNewsletterCampaign,
+    getNewsletterCampaigns,
 };

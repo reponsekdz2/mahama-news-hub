@@ -108,6 +108,7 @@ const ArticleManagement: React.FC = () => {
                          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase">Image</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase">Title</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase">Category</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium uppercase">Status</th>
@@ -118,7 +119,14 @@ const ArticleManagement: React.FC = () => {
                              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {articles.map(article => (
                                 <tr key={article.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{article.title}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                        {article.imageUrl ? (
+                                            <img src={article.imageUrl} alt={article.title} className="w-16 h-10 object-cover rounded shadow" />
+                                        ) : (
+                                            <div className="w-16 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center text-xs text-gray-500">No Image</div>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium max-w-xs truncate">{article.title}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">{article.category}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${article.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>

@@ -46,6 +46,8 @@ app.use('/api/moderation', require('./routes/moderationRoutes'));
 app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 app.use('/api/push', require('./routes/pushRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
+app.use('/api/search', require('./routes/searchRoutes'));
+
 
 // Utility routes (RSS, Sitemap)
 app.use('/api/utils', require('./routes/utilityRoutes'));

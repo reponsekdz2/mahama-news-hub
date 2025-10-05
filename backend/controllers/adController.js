@@ -23,7 +23,7 @@ const getSidebarAds = async (req, res, next) => {
             WHERE a.status = 'active'
               AND c.status = 'active'
               AND CURDATE() BETWEEN c.start_date AND c.end_date
-              AND c.budget > (SELECT COUNT(*) FROM ad_impressions WHERE ad_id = a.id) -- Simple budget check
+              AND c.budget > a.impressions
             ORDER BY 
               CASE WHEN ? IS NOT NULL AND JSON_CONTAINS(c.target_categories, JSON_QUOTE(?)) THEN 0 ELSE 1 END,
               RAND()

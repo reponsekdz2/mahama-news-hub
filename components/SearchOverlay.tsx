@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../contexts/LanguageContext.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { searchArticles } from '../services/articleService.ts';
+import { getRecentSearches, logSearch } from '../services/searchService.ts';
 import { fetchTrendingArticles, TrendingArticle } from '../services/analyticsService.ts';
 import { Article } from '../types.ts';
 import useDebounce from '../hooks/useDebounce.ts';
@@ -33,6 +34,7 @@ interface SearchOverlayProps {
 
 const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
     const { t } = useLanguage();
+    const { user } = useAuth();
     const [query, setQuery] = useState('');
     const [suggestions, setSuggestions] = useState<Pick<Article, 'id' | 'title'>[]>([]);
     const [trending, setTrending] = useState<TrendingArticle[]>([]);
@@ -81,9 +83,11 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
                 setTrending(trendingData);
             } catch (error) { console.error(error); }
 
-            const storedRecent = localStorage.getItem('recentSearches');
-            if (storedRecent) {
-                setRecentSearches(JSON.parse(storedRecent));
+            if (user?.token) {
+                try {
+                    const recent = await getRecentSearches(user.token);
+                    setRecentSearches(recent);
+                } catch(err) { console.error(err); }
             }
         };
         fetchInitialData();
@@ -96,7 +100,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
         inputRef.current?.focus();
 
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [onClose]);
+    }, [onClose, user?.token]);
 
     // Fetch suggestions when debounced query changes
     useEffect(() => {
@@ -122,9 +126,11 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ onClose, onSearch }) => {
     const handleSearch = (searchTerm: string) => {
         if (!searchTerm.trim()) return;
         
-        const updatedRecent = [searchTerm, ...recentSearches.filter(s => s !== searchTerm)].slice(0, 5);
-        setRecentSearches(updatedRecent);
-        localStorage.setItem('recentSearches', JSON.stringify(updatedRecent));
+        if (user?.token) {
+            logSearch(searchTerm, user.token).catch(console.error);
+            const updatedRecent = [searchTerm, ...recentSearches.filter(s => s !== searchTerm)].slice(0, 5);
+            setRecentSearches(updatedRecent);
+        }
         
         onSearch({ query: searchTerm, filters });
     };

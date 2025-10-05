@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { loginUser, registerUser } = require('../controllers/authController');
+const { loginUser, registerUser, googleSignIn } = require('../controllers/authController');
 
 /**
  * @route   POST api/auth/register
@@ -15,5 +15,13 @@ router.post('/register', registerUser);
  * @access  Public
  */
 router.post('/login', loginUser);
+
+/**
+ * @route   POST api/auth/google-signin
+ * @desc    Authenticate or register user via Google
+ * @access  Public
+ */
+router.post('/google-signin', googleSignIn);
+
 
 module.exports = router;

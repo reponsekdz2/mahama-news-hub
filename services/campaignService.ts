@@ -2,6 +2,13 @@ import { AdCampaign } from '../types.ts';
 
 const API_URL = '/api/campaigns';
 
+export interface NewsletterCampaign {
+    id: number;
+    subject: string;
+    sentAt: string;
+    adminName: string;
+}
+
 const handleResponse = async (response: Response) => {
     if (!response.ok) {
         const error = await response.json();
@@ -60,6 +67,13 @@ export const sendCampaign = async (campaignData: { subject: string, content: str
             'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(campaignData)
+    });
+    return handleResponse(response);
+};
+
+export const fetchNewsletterCampaigns = async (token: string): Promise<NewsletterCampaign[]> => {
+    const response = await fetch(`${API_URL}/newsletter-history`, {
+        headers: { 'Authorization': `Bearer ${token}` }
     });
     return handleResponse(response);
 };
